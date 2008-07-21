@@ -41,7 +41,9 @@
 
 /* Print usage text */
 void usage(char *progname) {
-  fprintf(stderr, "Usage: %s -l <local db file> -h <remote db host> -u <remote db user> -p <remote db password> -d <remote db database> [-R (reset claims)]\n", progname);
+  fprintf(stderr, "Usage: %s -l <local db file> -h <remote db host> -u <remote db user>\n", progname);
+  fprintf(stderr, "\t-p <remote db password> -d <remote db database>\n");
+  fprintf(stderr, "\t[-R (reset claims)] [-F (do not fork)] [-Q (be quiet)]\n");
 }
 
 /* Get a numeric id from one of the lexical tables, creating a new record if none exists */
@@ -444,9 +446,12 @@ int main(int argc, char** argv)
   struct sqlite3_stmt* userqry;
   int idx=1, r;
   int reset=0;
+  int do_fork=1;
+  int be_quiet=0;
   int lasttime=0;
 
   int pid=getpid();
+  int syslog_opts=LOG_PID;
 
   int warncounter = 0;
 
@@ -457,9 +462,7 @@ int main(int argc, char** argv)
   char *rdb_password=NULL;
   char *rdb_db=NULL;
 
-  openlog("gluff", LOG_PID, LOG_LOCAL2);
-
-  while ((o=getopt(argc, argv, "l:h:u:p:d:R")) != -1) {
+  while ((o=getopt(argc, argv, "l:h:u:p:d:RFQ")) != -1) {
     switch (o) {
     case 'l': ldb_filename = optarg;
       break;
@@ -473,6 +476,10 @@ int main(int argc, char** argv)
       break;
     case 'R': reset = 1;
       break;
+    case 'F': do_fork = 0;
+      break;
+    case 'Q': be_quiet = 1;
+      break;
     default:
       usage(argv[0]);
       return -1;
@@ -485,13 +492,43 @@ int main(int argc, char** argv)
     return -1;
   }
 
-  if (fork()) {
-    return 0;
-  }
+  if (!be_quiet) syslog_opts |= LOG_PERROR;
 
-  close(0);
-  close(1);
-  close(2);
+  openlog("gluff", syslog_opts, LOG_LOCAL2);
+
+  if (do_fork) {
+    if (sqlite3_open(ldb_filename, &ldb) != SQLITE_OK) {
+      syslog(LOG_ERR, "Failed to open sqlite3 database %s: %s", ldb_filename, sqlite3_errmsg(ldb));
+      return -10;
+    }
+   
+    sqlite3_close(ldb);
+    
+    if (!(mysql_init(&rdb))) {
+      syslog(LOG_ERR, "mysql_init(): %s", mysql_error(&rdb));
+      return -11;
+    }
+
+    if (!(mysql_real_connect(&rdb, rdb_host, rdb_user, rdb_password, rdb_db, 0, NULL, 0))) {
+      syslog(LOG_ERR, "mysql_real_connect(): %s", mysql_error(&rdb));
+      return -12;
+    }
+
+    mysql_close(&rdb);
+
+    closelog();
+
+    if (fork()) {
+      return 0;
+    }
+
+    close(0);
+    close(1);
+    close(2);
+
+    syslog_opts &= ~LOG_PERROR;
+    openlog("gluff", syslog_opts, LOG_LOCAL2); 
+  }
   
   if (sqlite3_open(ldb_filename, &ldb) != SQLITE_OK) {
     syslog(LOG_ERR, "Failed to open sqlite3 database %s: %s", ldb_filename, sqlite3_errmsg(ldb));
@@ -507,6 +544,8 @@ int main(int argc, char** argv)
     syslog(LOG_ERR, "mysql_real_connect(): %s", mysql_error(&rdb));
     return -12;
   }
+
+  syslog(LOG_INFO, "%s v%s starting, using Sqlite3 database %s and MySQL database mysql://%s@%s/%s", PRODUCT, VERSION, ldb_filename, rdb_user, rdb_host, rdb_db);
 
   /* Resetting means that we change back the 'claimed' column for all records in the queue to "0"
      before we start. This is safe if you are running only one "consumer" on any given sqlite3
@@ -577,7 +616,6 @@ int main(int argc, char** argv)
 	  const unsigned char *hwstr = sqlite3_column_text(userqry, 3);
 	  const unsigned char *cidstr = sqlite3_column_text(userqry, 4);
 	  const unsigned char *ridstr = sqlite3_column_text(userqry, 5);
-	  fprintf(stderr, "ip: %s\n", ipstr);
 	  long ip = rdb_ip_id(&rdb,ipstr);
 	  long hw = rdb_hw_id(&rdb,hwstr);
 	  long cid = rdb_cid_id(&rdb,cidstr);
@@ -586,7 +624,18 @@ int main(int argc, char** argv)
 	  long thathw, thatcid, thatrid;
 	  
 	  if (!(ip * hw * cid * rid)) return -15;
+
+	  char tbuf1[64], tbuf2[64];
 	  
+	  ctime_r(&start, tbuf1);
+	  ctime_r(&end, tbuf2);
+
+	  if (tbuf1[strlen(tbuf1) - 1] == '\n') tbuf1[strlen(tbuf1) - 1] = '\0';
+	  if (tbuf2[strlen(tbuf2) - 1] == '\n') tbuf2[strlen(tbuf2) - 1] = '\0';
+
+	  syslog(LOG_DEBUG, "ip: %s, hw: %s, cid: %s, rid: %s, start: %s, end: %s",
+		 ipstr, hwstr, cidstr, ridstr, tbuf1, tbuf2);
+
 	  int makelease=1;
 	  if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {

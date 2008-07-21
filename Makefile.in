@@ -9,7 +9,7 @@ srcdir = @srcdir@
 .SUFFIXES: .c .o
 
 CC = @CC@
-DEFINES = @DEFS@
+DEFINES = @DEFS@ -DPRODUCT=\"$(PRODUCT)\" -DVERSION=\"$(VERSION)\"
 CFLAGS = -I. @CFLAGS@ $(DEFINES)
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@

@@ -1,0 +1,38 @@
+AC_INIT(gluff.c)
+PRODUCT=gluff
+VERSION=1.0
+AC_CONFIG_HEADER(config.h)
+AC_PREFIX_DEFAULT(/opt/gluff)
+AC_PROG_CC
+AC_DEFINE_UNQUOTED(PRODUCT, "$PRODUCT")
+AC_DEFINE_UNQUOTED(VERSION, "$VERSION")
+AC_SUBST(PRODUCT)
+AC_SUBST(VERSION)
+
+LDFLAGS="$LDFLAGS -L/usr/local/lib"
+CFLAGS="$CFLAGS -I/usr/local/include"
+CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+
+dnl Checks for programs.
+AC_PROG_CC
+if test $CC = "gcc"; then
+	CFLAGS="$CFLAGS -Wall"
+fi
+AC_PROG_INSTALL
+AC_PROG_LN_S
+
+dnl Checks for libraries.
+AC_CHECK_LIB(sqlite3,sqlite3_open, ,AC_MSG_ERROR([Need libsqlite3.a]))
+AC_CHECK_LIB(mysqlclient,mysql_init, ,AC_MSG_ERROR([Need libmysqlclient.a]))
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(limits.h unistd.h mysql/mysql.h sqlite3.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+
+dnl Checks for library functions.
+AC_TYPE_SIGNAL
+
+AC_OUTPUT(Makefile)

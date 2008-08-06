@@ -286,7 +286,7 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
 /* Change the 'end time' for a lease */
 int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t newend, int prolong) {
   MYSQL_STMT *stmt=NULL;
-  MYSQL_BIND param[4];
+  MYSQL_BIND param[5];
     
   MYSQL_TIME my_thatstart, my_thatend;
   MYSQL_TIME my_newend;

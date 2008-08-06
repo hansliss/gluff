@@ -40,9 +40,10 @@
 #define MAKEIP_RSQL "INSERT INTO ips (value) values (?)"
 #define MAKEHW_RSQL "INSERT INTO hws (value) values (?)"
 
-#define FIND_LEASE_RSQL "SELECT start,end,hw,cid,rid from leases where ip=? and start<=? and end>=?"
-#define UPDATE_LEASE_RSQL "UPDATE leases set end=? where ip=? and start<=? and end>=?"
-#define MAKE_LEASE_RSQL "REPLACE INTO leases (ip,start,end,hw,cid,rid) values (?,?,?,?,?,?)"
+#define FIND_LEASE_RSQL "SELECT lstart,lend,hw,cid,rid from leases where ip=? and lstart<=? and lend>=?"
+#define CUTOFF_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend>=?"
+#define PROLONG_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend<? and lend>=?"
+#define MAKE_LEASE_RSQL "REPLACE INTO leases (ip,lstart,lend,hw,cid,rid) values (?,?,?,?,?,?)"
 
 
 /* Print usage text */
@@ -283,7 +284,7 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
 }
 
 /* Change the 'end time' for a lease */
-int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t newend) {
+int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t newend, int prolong) {
   MYSQL_STMT *stmt=NULL;
   MYSQL_BIND param[4];
     
@@ -325,9 +326,16 @@ int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t
     return -1;
   }
 
-  if (mysql_stmt_prepare(stmt, UPDATE_LEASE_RSQL, strlen(UPDATE_LEASE_RSQL)) != 0) {
-    syslog(LOG_ERR, "mysql_stmt_prepare(): %s", mysql_error(db));
-    return -1;
+  if (prolong) {
+    if (mysql_stmt_prepare(stmt, PROLONG_LEASE_RSQL, strlen(PROLONG_LEASE_RSQL)) != 0) {
+      syslog(LOG_ERR, "mysql_stmt_prepare(): %s", mysql_error(db));
+      return -1;
+    }
+  } else {
+    if (mysql_stmt_prepare(stmt, CUTOFF_LEASE_RSQL, strlen(CUTOFF_LEASE_RSQL)) != 0) {
+      syslog(LOG_ERR, "mysql_stmt_prepare(): %s", mysql_error(db));
+      return -1;
+    }
   }
 
   memset ((void *) param, 0, sizeof (param));
@@ -344,9 +352,19 @@ int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t
   param[2].buffer = (void *) &my_thatstart;
   param[2].is_null = 0;
 
-  param[3].buffer_type = MYSQL_TYPE_DATETIME;
-  param[3].buffer = (void *) &my_thatend;
-  param[3].is_null = 0;
+  if (prolong) {
+    param[3].buffer_type = MYSQL_TYPE_DATETIME;
+    param[3].buffer = (void *) &my_newend;
+    param[3].is_null = 0;
+    
+    param[4].buffer_type = MYSQL_TYPE_DATETIME;
+    param[4].buffer = (void *) &my_thatend;
+    param[4].is_null = 0;
+  } else {
+    param[3].buffer_type = MYSQL_TYPE_DATETIME;
+    param[3].buffer = (void *) &my_thatend;
+    param[3].is_null = 0;
+  }
 
   if (mysql_stmt_bind_param(stmt, param) != 0) {
     syslog(LOG_ERR, "mysql_bind_param(): %s", mysql_error(db));
@@ -645,9 +663,9 @@ int main(int argc, char** argv)
 	  int makelease=1;
 	  if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {
-	      do_update_lease(&rdb, ip, thatstart, thatend, start);
+	      do_update_lease(&rdb, ip, thatstart, thatend, start, 0); // cut off old lease
 	    } else {
-	      do_update_lease(&rdb, ip, thatstart, thatend, end);
+	      do_update_lease(&rdb, ip, thatstart, thatend, end, 1); // prolong lease
 	      makelease=0;
 	    }
 	  } else if (r<0) return -16;

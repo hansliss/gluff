@@ -34,8 +34,8 @@ CREATE TABLE `ips` (
 
 CREATE TABLE `leases` (
   `ip` int(11) NOT NULL default '0',
-  `start` datetime NOT NULL default '0000-00-00 00:00:00',
-  `end` datetime default NULL,
+  `lstart` datetime NOT NULL default '0000-00-00 00:00:00',
+  `lend` datetime default NULL,
   `hw` int(11) default NULL,
   `cid` int(11) default NULL,
   `rid` int(11) default NULL,

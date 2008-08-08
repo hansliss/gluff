@@ -39,7 +39,7 @@ CREATE TABLE `leases` (
   `hw` int(11) default NULL,
   `cid` int(11) default NULL,
   `rid` int(11) default NULL,
-  PRIMARY KEY  (`ip`,`start`,`cid`,`rid`)
+  PRIMARY KEY  (`ip`,`lstart`,`cid`,`rid`)
 );
 
 --

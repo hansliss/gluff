@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <syslog.h>
 #include <sqlite3.h>
@@ -26,7 +28,7 @@
 
 #define RESET_LSQL "UPDATE lease_queue set claimed=0"
 #define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0"
-#define GET_LSQL "SELECT start,end,ip,hw,cid,rid FROM lease_queue where claimed=? order by start,idx"
+#define GET_LSQL "SELECT start,rtype,end,ip,hw,cid,rid FROM lease_queue where claimed=? order by start,idx"
 #define CLEAR_LSQL "DELETE FROM lease_queue where claimed=?"
 
 /* Remote SQL queries for the MySQL database */
@@ -467,12 +469,13 @@ int main(int argc, char** argv)
   sqlite3 *ldb;
   MYSQL rdb;
 
-  struct sqlite3_stmt* userqry;
+  struct sqlite3_stmt* ldb_query;
   int idx=1, r;
   int reset=0;
   int do_fork=1;
   int be_quiet=0;
   int lasttime=0;
+  struct stat stbuf;
 
   int pid=getpid();
   int syslog_opts=LOG_PID;
@@ -520,14 +523,20 @@ int main(int argc, char** argv)
 
   openlog("gluff", syslog_opts, LOG_LOCAL2);
 
-  if (do_fork) {
-    if (sqlite3_open(ldb_filename, &ldb) != SQLITE_OK) {
-      syslog(LOG_ERR, "Failed to open sqlite3 database %s: %s", ldb_filename, sqlite3_errmsg(ldb));
-      return -10;
-    }
-   
-    sqlite3_close(ldb);
+  if (stat(ldb_filename, &stbuf) != 0) {
+    syslog(LOG_INFO, "Creating sqlite3 database %s", ldb_filename);
+    if (sqlite3_open(ldb_filename, &ldb) == SQLITE_OK &&
+	sqlite3_prepare(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, rtype integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))",
+			-1, &ldb_query, NULL) == SQLITE_OK) {
+      while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
+	usleep(1000);
+      }
+      if (r == SQLITE_DONE) sqlite3_finalize(ldb_query);
+      else syslog(LOG_ERR, "Failed to create table lease_queue: %s", sqlite3_errmsg(ldb));
+    } else syslog(LOG_ERR, "Failed to create database %s: %s", ldb_filename, sqlite3_errmsg(ldb));
+  } else sqlite3_close(ldb);
     
+  if (do_fork) {
     if (!(mysql_init(&rdb))) {
       syslog(LOG_ERR, "mysql_init(): %s", mysql_error(&rdb));
       return -11;
@@ -575,12 +584,12 @@ int main(int argc, char** argv)
      before we start. This is safe if you are running only one "consumer" on any given sqlite3
      database, i.e. practically always. */
   if (reset) {
-    if (sqlite3_prepare(ldb, RESET_LSQL, strlen(RESET_LSQL), &userqry, NULL) != SQLITE_OK) {
+    if (sqlite3_prepare(ldb, RESET_LSQL, strlen(RESET_LSQL), &ldb_query, NULL) != SQLITE_OK) {
       syslog(LOG_ERR, "Failed to reset queue entries: %s", sqlite3_errmsg(ldb));
       return -20;
     }
     
-    while ((r=sqlite3_step(userqry)) == SQLITE_BUSY) {
+    while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
       usleep(1000);
     }
     
@@ -588,7 +597,7 @@ int main(int argc, char** argv)
       syslog(LOG_ERR, "sqlite3_step(): %s", sqlite3_errmsg(ldb));
     }
     
-    if (sqlite3_finalize(userqry) != SQLITE_OK) {
+    if (sqlite3_finalize(ldb_query) != SQLITE_OK) {
       syslog(LOG_ERR, "sqlite3_finalize(): %s", sqlite3_errmsg(ldb));
     }
   }
@@ -606,13 +615,13 @@ int main(int argc, char** argv)
 	idx=1;
       }
 
-      if (sqlite3_prepare(ldb, CLAIM_LSQL, strlen(CLAIM_LSQL), &userqry, NULL) != SQLITE_OK ||
-	  sqlite3_bind_int(userqry,1,pid) != SQLITE_OK) {
+      if (sqlite3_prepare(ldb, CLAIM_LSQL, strlen(CLAIM_LSQL), &ldb_query, NULL) != SQLITE_OK ||
+	  sqlite3_bind_int(ldb_query,1,pid) != SQLITE_OK) {
 	syslog(LOG_ERR, "Failed to claim queue entries: %s", sqlite3_errmsg(ldb));
 	return -20;
       }
 
-      while ((r=sqlite3_step(userqry)) == SQLITE_BUSY) {
+      while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
 	usleep(1000);
       }
       
@@ -620,26 +629,27 @@ int main(int argc, char** argv)
 	syslog(LOG_ERR, "sqlite3_step(): %s", sqlite3_errmsg(ldb));
       }
       
-      if (sqlite3_finalize(userqry) != SQLITE_OK) {
+      if (sqlite3_finalize(ldb_query) != SQLITE_OK) {
 	syslog(LOG_ERR, "sqlite3_finalize(): %s", sqlite3_errmsg(ldb));
       }
       
-      if (sqlite3_prepare(ldb, GET_LSQL, strlen(GET_LSQL), &userqry, NULL) != SQLITE_OK ||
-	  sqlite3_bind_int(userqry,1,pid) != SQLITE_OK) {
+      if (sqlite3_prepare(ldb, GET_LSQL, strlen(GET_LSQL), &ldb_query, NULL) != SQLITE_OK ||
+	  sqlite3_bind_int(ldb_query,1,pid) != SQLITE_OK) {
 	syslog(LOG_ERR, "Failed to retrieve queue entries: %s", sqlite3_errmsg(ldb));
 	return -20;
       }
 
-      while ((r=sqlite3_step(userqry)) == SQLITE_BUSY || (r == SQLITE_ROW)) {
+      while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY || (r == SQLITE_ROW)) {
 	if (r == SQLITE_BUSY) usleep(300000);
 	else {
 	  // start, end, ip, hw, cid, rid
-	  time_t start = sqlite3_column_int(userqry, 0);
-	  time_t end = sqlite3_column_int(userqry, 1);
-	  const unsigned char *ipstr = sqlite3_column_text(userqry, 2);
-	  const unsigned char *hwstr = sqlite3_column_text(userqry, 3);
-	  const unsigned char *cidstr = sqlite3_column_text(userqry, 4);
-	  const unsigned char *ridstr = sqlite3_column_text(userqry, 5);
+	  time_t start = sqlite3_column_int(ldb_query, 0);
+	  int rtype = sqlite3_column_int(ldb_query, 1);
+	  time_t end = sqlite3_column_int(ldb_query, 2);
+	  const unsigned char *ipstr = sqlite3_column_text(ldb_query, 3);
+	  const unsigned char *hwstr = sqlite3_column_text(ldb_query, 4);
+	  const unsigned char *cidstr = sqlite3_column_text(ldb_query, 5);
+	  const unsigned char *ridstr = sqlite3_column_text(ldb_query, 6);
 	  long ip = rdb_ip_id(&rdb,ipstr);
 	  long hw = rdb_hw_id(&rdb,hwstr);
 	  long cid = rdb_cid_id(&rdb,cidstr);
@@ -657,7 +667,8 @@ int main(int argc, char** argv)
 	  if (tbuf1[strlen(tbuf1) - 1] == '\n') tbuf1[strlen(tbuf1) - 1] = '\0';
 	  if (tbuf2[strlen(tbuf2) - 1] == '\n') tbuf2[strlen(tbuf2) - 1] = '\0';
 
-	  syslog(LOG_DEBUG, "ip: %s, hw: %s, cid: %s, rid: %s, start: %s, end: %s",
+	  syslog(LOG_DEBUG, "%s on ip: %s, hw: %s, cid: %s, rid: %s, start: %s, end: %s",
+		 (rtype==1)?"RELEASE":"ACK",
 		 ipstr, hwstr, cidstr, ridstr, tbuf1, tbuf2);
 
 	  int makelease=1;
@@ -665,7 +676,11 @@ int main(int argc, char** argv)
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {
 	      do_update_lease(&rdb, ip, thatstart, thatend, start, 0); // cut off old lease
 	    } else {
-	      do_update_lease(&rdb, ip, thatstart, thatend, end, 1); // prolong lease
+	      if (rtype == 1) {
+		do_update_lease(&rdb, ip, thatstart, thatend, end, 0); // cut off old lease
+	      } else {
+		do_update_lease(&rdb, ip, thatstart, thatend, end, 1); // prolong lease
+	      }
 	      makelease=0;
 	    }
 	  } else if (r<0) return -16;
@@ -679,16 +694,16 @@ int main(int argc, char** argv)
 	syslog(LOG_ERR, "sqlite3_step(): %s", sqlite3_errmsg(ldb));
       }
       
-      if (sqlite3_finalize(userqry) != SQLITE_OK) {
+      if (sqlite3_finalize(ldb_query) != SQLITE_OK) {
 	syslog(LOG_ERR, "sqlite3_finalize(): %s", sqlite3_errmsg(ldb));
       }
       
-      if (sqlite3_prepare(ldb, CLEAR_LSQL, strlen(CLEAR_LSQL), &userqry, NULL) != SQLITE_OK ||
-	  sqlite3_bind_int(userqry,1,pid) != SQLITE_OK) {
+      if (sqlite3_prepare(ldb, CLEAR_LSQL, strlen(CLEAR_LSQL), &ldb_query, NULL) != SQLITE_OK ||
+	  sqlite3_bind_int(ldb_query,1,pid) != SQLITE_OK) {
 	syslog(LOG_ERR, "Failed to clear queue entries: %s", sqlite3_errmsg(ldb));
 	return -20;
       }
-      while ((r=sqlite3_step(userqry)) == SQLITE_BUSY) {
+      while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
 	usleep(1000);
       }
       
@@ -696,7 +711,7 @@ int main(int argc, char** argv)
 	syslog(LOG_ERR, "sqlite3_step(): %s", sqlite3_errmsg(ldb));
       }
       
-      if (sqlite3_finalize(userqry) != SQLITE_OK) {
+      if (sqlite3_finalize(ldb_query) != SQLITE_OK) {
 	syslog(LOG_ERR, "sqlite3_finalize(): %s", sqlite3_errmsg(ldb));
       }
     } else if (++warncounter == 12) {

@@ -1,6 +1,6 @@
-diff -ruN dhcp-4.1.0a1/configure dhcp-4.1.0a1-ldb/configure
+diff -ruN dhcp-4.1.0a1/configure dhcp-4.1.0a1-hl/configure
 --- dhcp-4.1.0a1/configure	2008-01-24 03:20:37.000000000 +0100
-+++ dhcp-4.1.0a1-ldb/configure	2008-07-13 12:19:46.000000000 +0200
++++ dhcp-4.1.0a1-hl/configure	2008-08-14 09:48:26.000000000 +0200
 @@ -5674,6 +5674,91 @@
  fi
  
@@ -132,9 +132,9 @@ diff -ruN dhcp-4.1.0a1/configure dhcp-4.1.0a1-ldb/configure
      dirpart=`$as_dirname -- "$mf" ||
  $as_expr X"$mf" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
  	 X"$mf" : 'X\(//\)[^/]' \| \
-diff -ruN dhcp-4.1.0a1/configure.ac dhcp-4.1.0a1-ldb/configure.ac
+diff -ruN dhcp-4.1.0a1/configure.ac dhcp-4.1.0a1-hl/configure.ac
 --- dhcp-4.1.0a1/configure.ac	2008-01-24 03:14:32.000000000 +0100
-+++ dhcp-4.1.0a1-ldb/configure.ac	2008-07-13 12:19:39.000000000 +0200
++++ dhcp-4.1.0a1-hl/configure.ac	2008-08-14 09:48:26.000000000 +0200
 @@ -224,6 +224,9 @@
  AC_SEARCH_LIBS(MD5_Init, [crypto])
  AC_SEARCH_LIBS(MD5Init, [crypto])
@@ -145,9 +145,9 @@ diff -ruN dhcp-4.1.0a1/configure.ac dhcp-4.1.0a1-ldb/configure.ac
  # Solaris needs some libraries for functions
  AC_SEARCH_LIBS(socket, [socket])
  AC_SEARCH_LIBS(inet_ntoa, [nsl])
-diff -ruN dhcp-4.1.0a1/includes/dhcpd.h dhcp-4.1.0a1-ldb/includes/dhcpd.h
+diff -ruN dhcp-4.1.0a1/includes/dhcpd.h dhcp-4.1.0a1-hl/includes/dhcpd.h
 --- dhcp-4.1.0a1/includes/dhcpd.h	2008-01-24 03:43:05.000000000 +0100
-+++ dhcp-4.1.0a1-ldb/includes/dhcpd.h	2008-07-13 12:09:42.000000000 +0200
++++ dhcp-4.1.0a1-hl/includes/dhcpd.h	2008-08-14 09:48:26.000000000 +0200
 @@ -1667,6 +1667,7 @@
  
  extern const char *path_dhcpd_conf;
@@ -161,9 +161,9 @@ diff -ruN dhcp-4.1.0a1/includes/dhcpd.h dhcp-4.1.0a1-ldb/includes/dhcpd.h
  void mark_hosts_unavailable(void);
  void mark_interfaces_unavailable(void);
 -
-diff -ruN dhcp-4.1.0a1/server/dhcp.c dhcp-4.1.0a1-ldb/server/dhcp.c
+diff -ruN dhcp-4.1.0a1/server/dhcp.c dhcp-4.1.0a1-hl/server/dhcp.c
 --- dhcp-4.1.0a1/server/dhcp.c	2008-01-28 19:21:06.000000000 +0100
-+++ dhcp-4.1.0a1-ldb/server/dhcp.c	2008-07-13 12:18:15.000000000 +0200
++++ dhcp-4.1.0a1-hl/server/dhcp.c	2008-08-14 11:35:38.000000000 +0200
 @@ -35,6 +35,7 @@
  #include "dhcpd.h"
  #include <errno.h>
@@ -172,117 +172,228 @@ diff -ruN dhcp-4.1.0a1/server/dhcp.c dhcp-4.1.0a1-ldb/server/dhcp.c
  
  int outstanding_pings;
  
-@@ -3031,6 +3032,107 @@
+@@ -47,6 +48,10 @@
+ static char dhcp_message [256];
+ static int site_code_min;
+ 
++static int ldb_idx=1;
++static int ldb_lasttime=0;
++static sqlite3 *ldb=NULL;
++
+ static int find_min_site_code(struct universe *);
+ static isc_result_t lowest_site_code(const void *, unsigned, void *);
+ 
+@@ -793,9 +798,96 @@
+ 
+ 	/* If we found a lease, release it. */
+ 	if (lease && lease -> ends > cur_time) {
++	  
++		if (path_dhcpd_ldb && ldb != NULL) {
++			int ok=1, r;
++			struct sqlite3_stmt* ldb_query;
++			struct option_cache *ridopt = NULL, *cidopt = NULL;
++			
++			if (lease -> starts != ldb_lasttime) {
++				ldb_lasttime = lease -> starts;
++				ldb_idx = 1;
++			}
++			
++			if (lease -> agent_options) {
++				struct option_cache *oc;
++				pair p;
++				
++				for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++					oc = (struct option_cache *)p -> car;
++					if (oc -> data.len) {
++						if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++						else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++					}
++				}
++			}
++		
++			if (ok && (sqlite3_prepare(ldb,
++						   "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,1,?,?,?,?,?,?,?)",
++						   -1, &ldb_query, NULL) != SQLITE_OK ||
++				   sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++				   sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++				   sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++				   sqlite3_bind_int(ldb_query, 4, time(NULL)) != SQLITE_OK || 
++				   sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++				   sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++								    ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++										     lease -> hardware_addr.hlen - 1,
++										     &lease -> hardware_addr.hbuf [1])
++								    : print_hex_1(lease->uid_len, lease->uid, 60)),
++						     -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
++				ok = 0;
++			}
++			
++			if (ok) {
++				if (cidopt) {
++					if (sqlite3_bind_text(ldb_query, 7,
++							      pretty_print_option (cidopt -> option, cidopt -> data.data,
++										   cidopt -> data.len, 1, 1),
++							      -1, SQLITE_TRANSIENT) != SQLITE_OK)
++						ok = 0;
++				} else {
++					if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++						ok = 0;
++					}
++				}
++			}
++			
++			if (ok) {
++				if (ridopt) {
++					if (sqlite3_bind_text(ldb_query, 8,
++							      pretty_print_option (ridopt -> option, ridopt -> data.data,
++										   ridopt -> data.len, 1, 1),
++							      -1, SQLITE_TRANSIENT) != SQLITE_OK)
++						ok = 0;
++				} else {
++					if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++						ok = 0;
++					}
++				}
++			}
++			
++			if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++					usleep(1000);
++				}
++			
++			if (ok && r != SQLITE_DONE)
++				ok = 0;
++			
++			if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++				ok = 0;
++			}
++			
++			if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++			
++		}
++		
+ 		release_lease (lease, packet);
+ 	} 
+ 	log_info ("%s", msgbuf);
++
++
++
+       out:
+ 	if (lease)
+ 		lease_dereference (&lease, MDL);
+@@ -3031,6 +3123,110 @@
  		   ? inet_ntoa (state -> giaddr)
  		   : state -> ip -> name));
  
 +	if (state -> offer == DHCPACK && lease -> starts && lease -> ends) {
-+	  static int ldb_idx=1;
-+	  static int ldb_lasttime=0;
-+	  static sqlite3 *ldb=NULL;
-+	  int ok=1, r;
-+	  struct sqlite3_stmt* ldb_query;
-+	  struct option_cache *ridopt = NULL, *cidopt = NULL;
-+
-+	  if (path_dhcpd_ldb && ldb == NULL) {
-+	    if (sqlite3_open(path_dhcpd_ldb, &ldb) != SQLITE_OK ||
-+		sqlite3_prepare(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))", -1, &ldb_query, NULL) != SQLITE_OK) {
-+	      ok = 0;
-+	    }
-+
-+	    if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
-+	      usleep(1000);
-+	    }
-+
-+	    if (ok && r != SQLITE_DONE)
-+	      ok = 0;
-+
-+	    if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
-+	      ok = 0;
-+	    }
-+	  }
-+
-+	  if (ok) {
-+	    if (lease -> starts != ldb_lasttime) {
-+	      ldb_lasttime = lease -> starts;
-+	      ldb_idx = 1;
-+	    }
-+	    
-+	    if (lease -> agent_options) {
-+	      struct option_cache *oc;
-+	      pair p;
-+	      
-+	      for (p = lease -> agent_options -> first; p; p = p -> cdr) {
-+		oc = (struct option_cache *)p -> car;
-+		if (oc -> data.len) {
-+		  if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
-+		  else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++		int ok=1, r;
++		struct sqlite3_stmt* ldb_query;
++		struct option_cache *ridopt = NULL, *cidopt = NULL;
++		
++		if (path_dhcpd_ldb && ldb == NULL) {
++			if (sqlite3_open(path_dhcpd_ldb, &ldb) != SQLITE_OK ||
++			    sqlite3_prepare(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, rtype integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))",
++					    -1, &ldb_query, NULL) != SQLITE_OK) {
++				ok = 0;
++			}
++			
++			if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++					usleep(1000);
++				}
++			
++			if (ok && r != SQLITE_DONE)
++				ok = 0;
++			
++			if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++				ok = 0;
++			}
 +		}
-+	      }
-+	    }
-+	  }
-+	  
-+	  if (ok && (sqlite3_prepare(ldb,
-+			      "INSERT INTO lease_queue (start, idx, claimed, end, ip, hw, cid, rid) values (?,?,?,?,?,?,?,?)",
-+			      -1, &ldb_query, NULL) != SQLITE_OK ||
-+	      sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
-+	      sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
-+	      sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
-+	      sqlite3_bind_int(ldb_query, 4, lease -> ends) != SQLITE_OK || 
-+	      sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
-+	      sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
-+					       ? print_hw_addr (lease -> hardware_addr.hbuf [0],
-+							      lease -> hardware_addr.hlen - 1,
-+							      &lease -> hardware_addr.hbuf [1])
-+					       : print_hex_1(lease->uid_len, lease->uid, 60)), -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
-+	    ok = 0;
-+	  }
-+
-+	  if (ok) {
-+	    if (cidopt) {
-+	      if (sqlite3_bind_text(ldb_query, 7, pretty_print_option (cidopt -> option, cidopt -> data.data,
-+								       cidopt -> data.len, 1, 1), -1, SQLITE_TRANSIENT) != SQLITE_OK)
-+		ok = 0;
-+	    } else {
-+	      if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
-+		ok = 0;
-+	      }
-+	    }
-+	  }
-+
-+	  if (ok) {
-+	    if (ridopt) {
-+	      if (sqlite3_bind_text(ldb_query, 8, pretty_print_option (ridopt -> option, ridopt -> data.data,
-+								       ridopt -> data.len, 1, 1), -1, SQLITE_TRANSIENT) != SQLITE_OK)
-+		ok = 0;
-+	    } else {
-+	      if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
-+		ok = 0;
-+	      }
-+	    }
-+	  }
-+	  
-+	  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
-+	    usleep(1000);
-+	  }
-+	  
-+	  if (ok && r != SQLITE_DONE)
-+	    ok = 0;
-+	  
-+	  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
-+	    ok = 0;
-+	  }
-+
-+	  if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
-+	  
++		
++		if (ok) {
++			if (lease -> starts != ldb_lasttime) {
++				ldb_lasttime = lease -> starts;
++				ldb_idx = 1;
++			}
++			
++			if (lease -> agent_options) {
++				struct option_cache *oc;
++				pair p;
++				
++				for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++					oc = (struct option_cache *)p -> car;
++					if (oc -> data.len) {
++						if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++						else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++					}
++				}
++			}
++		}
++		
++		if (ok && (sqlite3_prepare(ldb,
++					   "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,0,?,?,?,?,?,?,?)",
++					   -1, &ldb_query, NULL) != SQLITE_OK ||
++			   sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++			   sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++			   sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++			   sqlite3_bind_int(ldb_query, 4, lease -> ends) != SQLITE_OK || 
++			   sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++			   sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++							    ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++									     lease -> hardware_addr.hlen - 1,
++									     &lease -> hardware_addr.hbuf [1])
++							    : print_hex_1(lease->uid_len, lease->uid, 60)),
++					     -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
++			ok = 0;
++		}
++		
++		if (ok) {
++			if (cidopt) {
++				if (sqlite3_bind_text(ldb_query, 7,
++						      pretty_print_option (cidopt -> option, cidopt -> data.data,
++									   cidopt -> data.len, 1, 1),
++						      -1, SQLITE_TRANSIENT) != SQLITE_OK)
++					ok = 0;
++			} else {
++				if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++					ok = 0;
++				}
++			}
++		}
++		
++		if (ok) {
++			if (ridopt) {
++				if (sqlite3_bind_text(ldb_query, 8,
++						      pretty_print_option (ridopt -> option, ridopt -> data.data,
++									   ridopt -> data.len, 1, 1),
++						      -1, SQLITE_TRANSIENT) != SQLITE_OK)
++					ok = 0;
++			} else {
++				if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++					ok = 0;
++				}
++			}
++		}
++		
++		if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++				usleep(1000);
++			}
++		
++		if (ok && r != SQLITE_DONE)
++			ok = 0;
++		
++		if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++			ok = 0;
++		}
++		
++		if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++		
 +	}
 +	
  	/* Set up the hardware address... */
  	hto.hlen = lease -> hardware_addr.hlen;
  	memcpy (hto.hbuf, lease -> hardware_addr.hbuf, hto.hlen);
-diff -ruN dhcp-4.1.0a1/server/dhcpd.c dhcp-4.1.0a1-ldb/server/dhcpd.c
+diff -ruN dhcp-4.1.0a1/server/dhcpd.c dhcp-4.1.0a1-hl/server/dhcpd.c
 --- dhcp-4.1.0a1/server/dhcpd.c	2008-01-24 03:17:41.000000000 +0100
-+++ dhcp-4.1.0a1-ldb/server/dhcpd.c	2008-07-13 12:16:00.000000000 +0200
++++ dhcp-4.1.0a1-hl/server/dhcpd.c	2008-08-14 09:48:26.000000000 +0200
 @@ -33,7 +33,7 @@
   */
  

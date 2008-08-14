@@ -2611,7 +2611,7 @@ _ACEOF
 
 
 
-LDFLAGS="$LDFLAGS -L/usr/local/lib"
+LDFLAGS="$LDFLAGS -L/usr/lib/mysql -L/usr/local/lib"
 CFLAGS="$CFLAGS -I/usr/local/include"
 CPPFLAGS="$CPPFLAGS -I/usr/local/include"
 

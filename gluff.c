@@ -476,6 +476,7 @@ int main(int argc, char** argv)
   int be_quiet=0;
   int lasttime=0;
   struct stat stbuf;
+  my_bool bool_true=1;
 
   int pid=getpid();
   int syslog_opts=LOG_PID;
@@ -577,6 +578,11 @@ int main(int argc, char** argv)
     syslog(LOG_ERR, "mysql_real_connect(): %s", mysql_error(&rdb));
     return -12;
   }
+
+  // For versions before 5.1.6, this has to be called *after* mysql_real_connect(); for
+  // versions before 5.0.3, it doesn't have to be called at all, since it's the default.
+  // Setting the option here seems like the safest solution.
+  mysql_options(MYSQL_OPT_RECONNECT, &bool_true);
 
   syslog(LOG_INFO, "%s v%s starting, using Sqlite3 database %s and MySQL database mysql://%s@%s/%s", PRODUCT, VERSION, ldb_filename, rdb_user, rdb_host, rdb_db);
 

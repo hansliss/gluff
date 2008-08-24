@@ -481,14 +481,13 @@ int main(int argc, char** argv)
   int pid=getpid();
   int syslog_opts=LOG_PID;
 
-  int warncounter = 0;
-
   int o;
   char *ldb_filename=NULL;
   char *rdb_host=NULL;
   char *rdb_user=NULL;
   char *rdb_password=NULL;
   char *rdb_db=NULL;
+  int rdb_connected=0;
 
   while ((o=getopt(argc, argv, "l:h:u:p:d:RFQ")) != -1) {
     switch (o) {
@@ -579,6 +578,8 @@ int main(int argc, char** argv)
     return -12;
   }
 
+  rdb_connected=1;
+
   // For versions before 5.1.6, this has to be called *after* mysql_real_connect(); for
   // versions before 5.0.3, it doesn't have to be called at all, since it's the default.
   // Setting the option here seems like the safest solution.
@@ -615,6 +616,11 @@ int main(int argc, char** argv)
   while(1) {
     if (!mysql_ping(&rdb)) {
       int now=time(NULL);
+
+      if (!rdb_connected) {
+	syslog(LOG_INFO, "Re-connected to MySQL server");
+	rdb_connected=1;
+      }
       
       if (now != lasttime) {
 	lasttime = now;
@@ -720,9 +726,11 @@ int main(int argc, char** argv)
       if (sqlite3_finalize(ldb_query) != SQLITE_OK) {
 	syslog(LOG_ERR, "sqlite3_finalize(): %s", sqlite3_errmsg(ldb));
       }
-    } else if (++warncounter == 12) {
-      syslog(LOG_WARNING, "MySQL server unreachable");
-      warncounter=0;
+    } else {
+      if (rdb_connected) {
+	syslog(LOG_WARNING, "MySQL server unreachable");
+	rdb_connected=0;
+      }
     }
     sleep(5);
   }

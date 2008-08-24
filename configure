@@ -523,7 +523,7 @@ fi
 
 
 PRODUCT=gluff
-VERSION=1.4
+VERSION=1.5
 
 
 # Extract the first word of "gcc", so it can be a program name with args.

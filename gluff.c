@@ -654,22 +654,35 @@ int main(int argc, char** argv)
       while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY || (r == SQLITE_ROW)) {
 	if (r == SQLITE_BUSY) usleep(300000);
 	else {
+	  const unsigned char *cidstr;
+	  const unsigned char *ridstr;
+	  long cid, rid;
 	  // start, end, ip, hw, cid, rid
 	  time_t start = sqlite3_column_int(ldb_query, 0);
 	  int rtype = sqlite3_column_int(ldb_query, 1);
 	  time_t end = sqlite3_column_int(ldb_query, 2);
 	  const unsigned char *ipstr = sqlite3_column_text(ldb_query, 3);
 	  const unsigned char *hwstr = sqlite3_column_text(ldb_query, 4);
-	  const unsigned char *cidstr = sqlite3_column_text(ldb_query, 5);
-	  const unsigned char *ridstr = sqlite3_column_text(ldb_query, 6);
+	  if (sqlite3_column_type(ldb_query, 5) != SQLITE_NULL) {
+	    cidstr = sqlite3_column_text(ldb_query, 5);
+	    cid = rdb_cid_id(&rdb,cidstr);
+	  } else {
+	    cidstr = (unsigned char *)"<NULL>";
+	    cid = 0;
+	  }
+	  if (sqlite3_column_type(ldb_query, 6) != SQLITE_NULL) {
+	    ridstr = sqlite3_column_text(ldb_query, 6);
+	    rid = rdb_rid_id(&rdb,ridstr);
+	  } else {
+	    ridstr = (unsigned char *)"<NULL>";
+	    rid = 0;
+	  }
 	  long ip = rdb_ip_id(&rdb,ipstr);
 	  long hw = rdb_hw_id(&rdb,hwstr);
-	  long cid = rdb_cid_id(&rdb,cidstr);
-	  long rid = rdb_rid_id(&rdb,ridstr);
 	  time_t thatstart, thatend;
 	  long thathw, thatcid, thatrid;
 	  
-	  if (!(ip * hw * cid * rid)) return -15;
+	  if (!(ip * hw)) return -15;
 
 	  char tbuf1[64], tbuf2[64];
 	  

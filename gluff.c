@@ -680,7 +680,7 @@ int main(int argc, char** argv)
 	  long ip = rdb_ip_id(&rdb,ipstr);
 	  long hw = rdb_hw_id(&rdb,hwstr);
 	  time_t thatstart, thatend;
-	  long thathw, thatcid, thatrid;
+	  long thathw=-1, thatcid=-1, thatrid=-1;
 	  
 	  if (!(ip * hw)) return -15;
 

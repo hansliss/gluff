@@ -1,0 +1,1045 @@
+diff -ruN dhcp-4.1.0/client/Makefile.in dhcp-4.1.0-hl/client/Makefile.in
+--- dhcp-4.1.0/client/Makefile.in	2008-12-05 21:14:48.000000000 +0100
++++ dhcp-4.1.0-hl/client/Makefile.in	2009-04-16 10:38:59.000000000 +0200
+@@ -100,6 +100,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -123,8 +124,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -137,19 +136,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/common/Makefile.in dhcp-4.1.0-hl/common/Makefile.in
+--- dhcp-4.1.0/common/Makefile.in	2008-12-05 21:14:50.000000000 +0100
++++ dhcp-4.1.0-hl/common/Makefile.in	2009-04-16 10:38:59.000000000 +0200
+@@ -102,6 +102,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -125,8 +126,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -139,19 +138,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/common/tests/Makefile.in dhcp-4.1.0-hl/common/tests/Makefile.in
+--- dhcp-4.1.0/common/tests/Makefile.in	2008-12-05 21:14:49.000000000 +0100
++++ dhcp-4.1.0-hl/common/tests/Makefile.in	2009-04-16 10:38:59.000000000 +0200
+@@ -81,6 +81,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -104,8 +105,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -118,19 +117,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/configure dhcp-4.1.0-hl/configure
+--- dhcp-4.1.0/configure	2008-12-05 21:15:20.000000000 +0100
++++ dhcp-4.1.0-hl/configure	2009-04-16 10:39:01.000000000 +0200
+@@ -5899,6 +5899,91 @@
+ fi
+ 
+ 
++# find an sqlite3 library
++{ echo "$as_me:$LINENO: checking for library containing sqlite3_open" >&5
++echo $ECHO_N "checking for library containing sqlite3_open... $ECHO_C" >&6; }
++if test "${ac_cv_search_sqlite3_open+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  ac_func_search_save_LIBS=$LIBS
++cat >conftest.$ac_ext <<_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h >>conftest.$ac_ext
++cat >>conftest.$ac_ext <<_ACEOF
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char sqlite3_open ();
++int
++main ()
++{
++return sqlite3_open ();
++  ;
++  return 0;
++}
++_ACEOF
++for ac_lib in '' sqlite3; do
++  if test -z "$ac_lib"; then
++    ac_res="none required"
++  else
++    ac_res=-l$ac_lib
++    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
++  fi
++  rm -f conftest.$ac_objext conftest$ac_exeext
++if { (ac_try="$ac_link"
++case "(($ac_try" in
++  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
++  *) ac_try_echo=$ac_try;;
++esac
++eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
++  (eval "$ac_link") 2>conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 >conftest.err
++  rm -f conftest.er1
++  cat conftest.err >&5
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } && {
++	 test -z "$ac_c_werror_flag" ||
++	 test ! -s conftest.err
++       } && test -s conftest$ac_exeext &&
++       $as_test_x conftest$ac_exeext; then
++  ac_cv_search_sqlite3_open=$ac_res
++else
++  echo "$as_me: failed program was:" >&5
++sed 's/^/| /' conftest.$ac_ext >&5
++
++
++fi
++
++rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
++      conftest$ac_exeext
++  if test "${ac_cv_search_sqlite3_open+set}" = set; then
++  break
++fi
++done
++if test "${ac_cv_search_sqlite3_open+set}" = set; then
++  :
++else
++  ac_cv_search_sqlite3_open=no
++fi
++rm conftest.$ac_ext
++LIBS=$ac_func_search_save_LIBS
++fi
++{ echo "$as_me:$LINENO: result: $ac_cv_search_sqlite3_open" >&5
++echo "${ECHO_T}$ac_cv_search_sqlite3_open" >&6; }
++ac_res=$ac_cv_search_sqlite3_open
++if test "$ac_res" != no; then
++  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
++
++fi
++
++
+ # Solaris needs some libraries for functions
+ { echo "$as_me:$LINENO: checking for library containing socket" >&5
+ echo $ECHO_N "checking for library containing socket... $ECHO_C" >&6; }
+diff -ruN dhcp-4.1.0/configure.ac dhcp-4.1.0-hl/configure.ac
+--- dhcp-4.1.0/configure.ac	2008-12-05 21:14:12.000000000 +0100
++++ dhcp-4.1.0-hl/configure.ac	2009-01-23 09:37:33.000000000 +0100
+@@ -392,6 +392,9 @@
+ AC_SEARCH_LIBS(MD5_Init, [crypto])
+ AC_SEARCH_LIBS(MD5Init, [crypto])
+ 
++# find an sqlite3 library
++AC_SEARCH_LIBS(sqlite3_open, [sqlite3])
++
+ # Solaris needs some libraries for functions
+ AC_SEARCH_LIBS(socket, [socket])
+ AC_SEARCH_LIBS(inet_ntoa, [nsl])
+diff -ruN dhcp-4.1.0/dhcpctl/Makefile.in dhcp-4.1.0-hl/dhcpctl/Makefile.in
+--- dhcp-4.1.0/dhcpctl/Makefile.in	2008-12-05 21:14:51.000000000 +0100
++++ dhcp-4.1.0-hl/dhcpctl/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -111,6 +111,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -134,8 +135,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -148,19 +147,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/dst/Makefile.in dhcp-4.1.0-hl/dst/Makefile.in
+--- dhcp-4.1.0/dst/Makefile.in	2008-12-05 21:14:52.000000000 +0100
++++ dhcp-4.1.0-hl/dst/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -93,6 +93,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -116,8 +117,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -130,19 +129,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/includes/dhcpd.h dhcp-4.1.0-hl/includes/dhcpd.h
+--- dhcp-4.1.0/includes/dhcpd.h	2008-08-29 19:48:57.000000000 +0200
++++ dhcp-4.1.0-hl/includes/dhcpd.h	2009-04-16 10:23:16.000000000 +0200
+@@ -1655,6 +1655,7 @@
+ 
+ extern const char *path_dhcpd_conf;
+ extern const char *path_dhcpd_db;
++extern const char *path_dhcpd_ldb;
+ extern const char *path_dhcpd_pid;
+ 
+ extern int dhcp_max_agent_option_packet_length;
+@@ -3309,3 +3310,5 @@
+ void mark_phosts_unavailable(void);
+ void mark_interfaces_unavailable(void);
+ 
++void ldb_log_lease(struct lease *lease);
++void ldb_log_release(struct lease *lease);
+diff -ruN dhcp-4.1.0/includes/Makefile.in dhcp-4.1.0-hl/includes/Makefile.in
+--- dhcp-4.1.0/includes/Makefile.in	2008-12-05 21:14:53.000000000 +0100
++++ dhcp-4.1.0-hl/includes/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -79,6 +79,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -102,8 +103,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -116,19 +115,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/Makefile.in dhcp-4.1.0-hl/Makefile.in
+--- dhcp-4.1.0/Makefile.in	2008-12-05 21:14:47.000000000 +0100
++++ dhcp-4.1.0-hl/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -99,6 +99,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -122,8 +123,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -136,19 +135,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/minires/Makefile.in dhcp-4.1.0-hl/minires/Makefile.in
+--- dhcp-4.1.0/minires/Makefile.in	2008-12-05 21:14:54.000000000 +0100
++++ dhcp-4.1.0-hl/minires/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -88,6 +88,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -111,8 +112,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -125,19 +124,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/omapip/Makefile.in dhcp-4.1.0-hl/omapip/Makefile.in
+--- dhcp-4.1.0/omapip/Makefile.in	2008-12-05 21:14:55.000000000 +0100
++++ dhcp-4.1.0-hl/omapip/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -107,6 +107,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -130,8 +131,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -144,19 +143,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/relay/Makefile.in dhcp-4.1.0-hl/relay/Makefile.in
+--- dhcp-4.1.0/relay/Makefile.in	2008-12-05 21:14:56.000000000 +0100
++++ dhcp-4.1.0-hl/relay/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -87,6 +87,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -110,8 +111,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -124,19 +123,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+diff -ruN dhcp-4.1.0/server/dhcp.c dhcp-4.1.0-hl/server/dhcp.c
+--- dhcp-4.1.0/server/dhcp.c	2008-11-03 19:13:58.000000000 +0100
++++ dhcp-4.1.0-hl/server/dhcp.c	2009-04-16 10:41:23.000000000 +0200
+@@ -797,7 +797,9 @@
+ 
+ 	/* If we found a lease, release it. */
+ 	if (lease && lease -> ends > cur_time) {
+-		release_lease (lease, packet);
++ 	  
++	  ldb_log_lease(lease);
++	  release_lease (lease, packet);
+ 	} 
+ 	log_info ("%s", msgbuf);
+ #if defined(FAILOVER_PROTOCOL)
+@@ -3078,6 +3080,8 @@
+ 		   ? inet_ntoa (state -> giaddr)
+ 		   : state -> ip -> name));
+ 
++	ldb_log_release(lease);
++	
+ 	/* Set up the hardware address... */
+ 	hto.hlen = lease -> hardware_addr.hlen;
+ 	memcpy (hto.hbuf, lease -> hardware_addr.hbuf, hto.hlen);
+diff -ruN dhcp-4.1.0/server/dhcpd.c dhcp-4.1.0-hl/server/dhcpd.c
+--- dhcp-4.1.0/server/dhcpd.c	2008-03-18 19:28:14.000000000 +0100
++++ dhcp-4.1.0-hl/server/dhcpd.c	2009-01-23 09:37:33.000000000 +0100
+@@ -33,7 +33,7 @@
+  */
+ 
+ static char copyright[] =
+-"Copyright 2004-2008 Internet Systems Consortium.";
++"Lease queue patch by Hans Liss (Hans@Liss.pp.se) 2008\nCopyright 2004-2008 Internet Systems Consortium.";
+ static char arr [] = "All rights reserved.";
+ static char message [] = "Internet Systems Consortium DHCP Server";
+ static char url [] = "For info, please visit http://www.isc.org/sw/dhcp/";
+@@ -159,6 +159,7 @@
+ 
+ const char *path_dhcpd_conf = _PATH_DHCPD_CONF;
+ const char *path_dhcpd_db = _PATH_DHCPD_DB;
++const char *path_dhcpd_ldb = NULL;
+ const char *path_dhcpd_pid = _PATH_DHCPD_PID;
+ 
+ int dhcp_max_agent_option_packet_length = DHCP_MTU_MAX;
+@@ -245,6 +246,7 @@
+ 	int lose;
+ 	int no_dhcpd_conf = 0;
+ 	int no_dhcpd_db = 0;
++	int no_dhcpd_ldb = 0;
+ 	int no_dhcpd_pid = 0;
+ #ifdef DHCPv6
+ 	int local_family_set = 0;
+@@ -346,6 +348,11 @@
+ 				usage ();
+ 			path_dhcpd_db = argv [i];
+ 			no_dhcpd_db = 1;
++		} else if (!strcmp (argv [i], "-ldb")) {
++			if (++i == argc)
++				usage ();
++			path_dhcpd_ldb = argv [i];
++			no_dhcpd_ldb = 1;
+ 		} else if (!strcmp (argv [i], "-pf")) {
+ 			if (++i == argc)
+ 				usage ();
+diff -ruN dhcp-4.1.0/server/hl_ldb.c dhcp-4.1.0-hl/server/hl_ldb.c
+--- dhcp-4.1.0/server/hl_ldb.c	1970-01-01 01:00:00.000000000 +0100
++++ dhcp-4.1.0-hl/server/hl_ldb.c	2009-04-16 10:43:47.000000000 +0200
+@@ -0,0 +1,250 @@
++/* ldb.c
++
++   Local database glue. */
++
++/*
++ * Copyright (c) 2009 Hans Liss <Hans@Liss.pp.se>
++ *
++ * Permission to use, copy, modify, and distribute this software for any
++ * purpose with or without fee is hereby granted, provided that the above
++ * copyright notice and this permission notice appear in all copies.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES
++ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR
++ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
++ * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ *
++ */
++
++
++
++#include "dhcpd.h"
++#include <errno.h>
++#include <limits.h>
++#include <sys/time.h>
++#include <sqlite3.h>
++
++static int ldb_idx=1;
++static int ldb_lasttime=0;
++static sqlite3 *ldb=NULL;
++
++void ldb_log_lease(struct lease *lease) {
++  int ok=1, r;
++  struct sqlite3_stmt* ldb_query;
++  struct option_cache *ridopt = NULL, *cidopt = NULL;
++  if (!path_dhcpd_ldb || !ldb) return;
++ 			
++  if (lease -> starts != ldb_lasttime) {
++    ldb_lasttime = lease -> starts;
++    ldb_idx = 1;
++  }
++ 			
++  if (lease -> agent_options) {
++    struct option_cache *oc;
++    pair p;
++    
++    for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++      oc = (struct option_cache *)p -> car;
++      if (oc -> data.len) {
++	if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++	else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++      }
++    }
++  }
++  
++  if (ok && (sqlite3_prepare(ldb,
++			     "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,1,?,?,?,?,?,?,?)",
++			     -1, &ldb_query, NULL) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 4, time(NULL)) != SQLITE_OK || 
++	     sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++	     sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++					      ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++							       lease -> hardware_addr.hlen - 1,
++							       &lease -> hardware_addr.hbuf [1])
++					      : print_hex_1(lease->uid_len, lease->uid, 60)),
++			       -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok) {
++    if (cidopt) {
++      if (sqlite3_bind_text(ldb_query, 7,
++			    pretty_print_option (cidopt -> option, cidopt -> data.data,
++						 cidopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) {
++    if (ridopt) {
++      if (sqlite3_bind_text(ldb_query, 8,
++			    pretty_print_option (ridopt -> option, ridopt -> data.data,
++						 ridopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++      usleep(1000);
++    }
++  
++  if (ok && r != SQLITE_DONE) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++  
++}
++
++void ldb_log_release(struct lease *lease) {
++  int ok=1, r;
++  struct sqlite3_stmt* ldb_query;
++  struct option_cache *ridopt = NULL, *cidopt = NULL;
++  struct lease_state *state = lease -> state;  
++
++  if (!path_dhcpd_ldb ||
++      state -> offer != DHCPACK ||
++      !(lease -> starts) ||
++      !(lease -> ends) ||
++      !ldb) {
++    return;
++  }
++  if (sqlite3_open(path_dhcpd_ldb, &ldb) != SQLITE_OK ||
++      sqlite3_prepare(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, rtype integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))",
++		      -1, &ldb_query, NULL) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++			
++  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++      usleep(1000);
++    }
++			
++  if (ok && r != SQLITE_DONE) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++			
++  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++		
++  if (ok) {
++    if (lease -> starts != ldb_lasttime) {
++      ldb_lasttime = lease -> starts;
++      ldb_idx = 1;
++    }
++    
++    if (lease -> agent_options) {
++      struct option_cache *oc;
++      pair p;
++      
++      for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++	oc = (struct option_cache *)p -> car;
++	if (oc -> data.len) {
++	  if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++	  else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++	}
++      }
++    }
++  }
++  
++  if (ok && (sqlite3_prepare(ldb,
++			     "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,0,?,?,?,?,?,?,?)",
++			     -1, &ldb_query, NULL) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 4, lease -> ends) != SQLITE_OK || 
++	     sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++	     sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++					      ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++							       lease -> hardware_addr.hlen - 1,
++							       &lease -> hardware_addr.hbuf [1])
++					      : print_hex_1(lease->uid_len, lease->uid, 60)),
++			       -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok) {
++    if (cidopt) {
++      if (sqlite3_bind_text(ldb_query, 7,
++			    pretty_print_option (cidopt -> option, cidopt -> data.data,
++						 cidopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) {
++    if (ridopt) {
++      if (sqlite3_bind_text(ldb_query, 8,
++			    pretty_print_option (ridopt -> option, ridopt -> data.data,
++						 ridopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++      usleep(1000);
++    }
++  
++  if (ok && r != SQLITE_DONE) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++  
++}
+diff -ruN dhcp-4.1.0/server/Makefile.am dhcp-4.1.0-hl/server/Makefile.am
+--- dhcp-4.1.0/server/Makefile.am	2007-05-29 18:32:11.000000000 +0200
++++ dhcp-4.1.0-hl/server/Makefile.am	2009-04-16 10:38:41.000000000 +0200
+@@ -4,7 +4,7 @@
+ sbin_PROGRAMS = dhcpd
+ dhcpd_SOURCES = dhcpd.c dhcp.c bootp.c confpars.c db.c class.c failover.c \
+ 		omapi.c mdb.c stables.c salloc.c ddns.c dhcpleasequery.c \
+-		dhcpv6.c mdb6.c
++		dhcpv6.c mdb6.c hl_ldb.c
+ 
+ # libomapi.a this is here twice to handle circular library dependencies :(
+ dhcpd_LDADD = ../common/libdhcp.a ../omapip/libomapi.a ../dst/libdst.a \
+diff -ruN dhcp-4.1.0/server/Makefile.in dhcp-4.1.0-hl/server/Makefile.in
+--- dhcp-4.1.0/server/Makefile.in	2008-12-05 21:14:57.000000000 +0100
++++ dhcp-4.1.0-hl/server/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -54,7 +54,8 @@
+ 	confpars.$(OBJEXT) db.$(OBJEXT) class.$(OBJEXT) \
+ 	failover.$(OBJEXT) omapi.$(OBJEXT) mdb.$(OBJEXT) \
+ 	stables.$(OBJEXT) salloc.$(OBJEXT) ddns.$(OBJEXT) \
+-	dhcpleasequery.$(OBJEXT) dhcpv6.$(OBJEXT) mdb6.$(OBJEXT)
++	dhcpleasequery.$(OBJEXT) dhcpv6.$(OBJEXT) mdb6.$(OBJEXT) \
++	hl_ldb.$(OBJEXT)
+ dhcpd_OBJECTS = $(am_dhcpd_OBJECTS)
+ dhcpd_DEPENDENCIES = ../common/libdhcp.a ../omapip/libomapi.a \
+ 	../dst/libdst.a ../dhcpctl/libdhcpctl.a ../minires/libres.a \
+@@ -104,6 +105,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -127,8 +129,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -141,19 +141,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@
+@@ -162,7 +169,7 @@
+ dist_sysconf_DATA = dhcpd.conf
+ dhcpd_SOURCES = dhcpd.c dhcp.c bootp.c confpars.c db.c class.c failover.c \
+ 		omapi.c mdb.c stables.c salloc.c ddns.c dhcpleasequery.c \
+-		dhcpv6.c mdb6.c
++		dhcpv6.c mdb6.c hl_ldb.c
+ 
+ 
+ # libomapi.a this is here twice to handle circular library dependencies :(
+@@ -248,6 +255,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpleasequery.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpv6.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/failover.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hl_ldb.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mdb.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mdb6.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/omapi.Po@am__quote@
+diff -ruN dhcp-4.1.0/tests/Makefile.in dhcp-4.1.0-hl/tests/Makefile.in
+--- dhcp-4.1.0/tests/Makefile.in	2008-12-05 21:14:58.000000000 +0100
++++ dhcp-4.1.0-hl/tests/Makefile.in	2009-04-16 10:39:00.000000000 +0200
+@@ -81,6 +81,7 @@
+ ECHO_T = @ECHO_T@
+ EGREP = @EGREP@
+ EXEEXT = @EXEEXT@
++GREP = @GREP@
+ INSTALL_DATA = @INSTALL_DATA@
+ INSTALL_PROGRAM = @INSTALL_PROGRAM@
+ INSTALL_SCRIPT = @INSTALL_SCRIPT@
+@@ -104,8 +105,6 @@
+ STRIP = @STRIP@
+ VERSION = @VERSION@
+ ac_ct_CC = @ac_ct_CC@
+-ac_ct_RANLIB = @ac_ct_RANLIB@
+-ac_ct_STRIP = @ac_ct_STRIP@
+ ac_prefix_program = @ac_prefix_program@
+ am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
+ am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
+@@ -118,19 +117,26 @@
+ build_alias = @build_alias@
+ byte_order = @byte_order@
+ datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
+ exec_prefix = @exec_prefix@
+ host_alias = @host_alias@
++htmldir = @htmldir@
+ includedir = @includedir@
+ infodir = @infodir@
+ install_sh = @install_sh@
+ libdir = @libdir@
+ libexecdir = @libexecdir@
++localedir = @localedir@
+ localstatedir = @localstatedir@
+ mandir = @mandir@
+ mkdir_p = @mkdir_p@
+ oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
++psdir = @psdir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ sysconfdir = @sysconfdir@

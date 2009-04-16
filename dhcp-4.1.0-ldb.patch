@@ -1,6 +1,6 @@
 diff -ruN dhcp-4.1.0/client/Makefile.in dhcp-4.1.0-hl/client/Makefile.in
 --- dhcp-4.1.0/client/Makefile.in	2008-12-05 21:14:48.000000000 +0100
-+++ dhcp-4.1.0-hl/client/Makefile.in	2009-04-16 10:38:59.000000000 +0200
++++ dhcp-4.1.0-hl/client/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -100,6 +100,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -47,7 +47,7 @@ diff -ruN dhcp-4.1.0/client/Makefile.in dhcp-4.1.0-hl/client/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/common/Makefile.in dhcp-4.1.0-hl/common/Makefile.in
 --- dhcp-4.1.0/common/Makefile.in	2008-12-05 21:14:50.000000000 +0100
-+++ dhcp-4.1.0-hl/common/Makefile.in	2009-04-16 10:38:59.000000000 +0200
++++ dhcp-4.1.0-hl/common/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -102,6 +102,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -94,7 +94,7 @@ diff -ruN dhcp-4.1.0/common/Makefile.in dhcp-4.1.0-hl/common/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/common/tests/Makefile.in dhcp-4.1.0-hl/common/tests/Makefile.in
 --- dhcp-4.1.0/common/tests/Makefile.in	2008-12-05 21:14:49.000000000 +0100
-+++ dhcp-4.1.0-hl/common/tests/Makefile.in	2009-04-16 10:38:59.000000000 +0200
++++ dhcp-4.1.0-hl/common/tests/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -81,6 +81,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -141,7 +141,7 @@ diff -ruN dhcp-4.1.0/common/tests/Makefile.in dhcp-4.1.0-hl/common/tests/Makefil
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/configure dhcp-4.1.0-hl/configure
 --- dhcp-4.1.0/configure	2008-12-05 21:15:20.000000000 +0100
-+++ dhcp-4.1.0-hl/configure	2009-04-16 10:39:01.000000000 +0200
++++ dhcp-4.1.0-hl/configure	2009-04-16 22:12:18.000000000 +0200
 @@ -5899,6 +5899,91 @@
  fi
  
@@ -236,7 +236,7 @@ diff -ruN dhcp-4.1.0/configure dhcp-4.1.0-hl/configure
  echo $ECHO_N "checking for library containing socket... $ECHO_C" >&6; }
 diff -ruN dhcp-4.1.0/configure.ac dhcp-4.1.0-hl/configure.ac
 --- dhcp-4.1.0/configure.ac	2008-12-05 21:14:12.000000000 +0100
-+++ dhcp-4.1.0-hl/configure.ac	2009-01-23 09:37:33.000000000 +0100
++++ dhcp-4.1.0-hl/configure.ac	2009-04-16 22:12:18.000000000 +0200
 @@ -392,6 +392,9 @@
  AC_SEARCH_LIBS(MD5_Init, [crypto])
  AC_SEARCH_LIBS(MD5Init, [crypto])
@@ -249,7 +249,7 @@ diff -ruN dhcp-4.1.0/configure.ac dhcp-4.1.0-hl/configure.ac
  AC_SEARCH_LIBS(inet_ntoa, [nsl])
 diff -ruN dhcp-4.1.0/dhcpctl/Makefile.in dhcp-4.1.0-hl/dhcpctl/Makefile.in
 --- dhcp-4.1.0/dhcpctl/Makefile.in	2008-12-05 21:14:51.000000000 +0100
-+++ dhcp-4.1.0-hl/dhcpctl/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/dhcpctl/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -111,6 +111,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -296,7 +296,7 @@ diff -ruN dhcp-4.1.0/dhcpctl/Makefile.in dhcp-4.1.0-hl/dhcpctl/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/dst/Makefile.in dhcp-4.1.0-hl/dst/Makefile.in
 --- dhcp-4.1.0/dst/Makefile.in	2008-12-05 21:14:52.000000000 +0100
-+++ dhcp-4.1.0-hl/dst/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/dst/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -93,6 +93,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -343,7 +343,7 @@ diff -ruN dhcp-4.1.0/dst/Makefile.in dhcp-4.1.0-hl/dst/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/includes/dhcpd.h dhcp-4.1.0-hl/includes/dhcpd.h
 --- dhcp-4.1.0/includes/dhcpd.h	2008-08-29 19:48:57.000000000 +0200
-+++ dhcp-4.1.0-hl/includes/dhcpd.h	2009-04-16 10:23:16.000000000 +0200
++++ dhcp-4.1.0-hl/includes/dhcpd.h	2009-04-16 22:12:18.000000000 +0200
 @@ -1655,6 +1655,7 @@
  
  extern const char *path_dhcpd_conf;
@@ -360,7 +360,7 @@ diff -ruN dhcp-4.1.0/includes/dhcpd.h dhcp-4.1.0-hl/includes/dhcpd.h
 +void ldb_log_release(struct lease *lease);
 diff -ruN dhcp-4.1.0/includes/Makefile.in dhcp-4.1.0-hl/includes/Makefile.in
 --- dhcp-4.1.0/includes/Makefile.in	2008-12-05 21:14:53.000000000 +0100
-+++ dhcp-4.1.0-hl/includes/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/includes/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -79,6 +79,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -407,7 +407,7 @@ diff -ruN dhcp-4.1.0/includes/Makefile.in dhcp-4.1.0-hl/includes/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/Makefile.in dhcp-4.1.0-hl/Makefile.in
 --- dhcp-4.1.0/Makefile.in	2008-12-05 21:14:47.000000000 +0100
-+++ dhcp-4.1.0-hl/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -99,6 +99,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -454,7 +454,7 @@ diff -ruN dhcp-4.1.0/Makefile.in dhcp-4.1.0-hl/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/minires/Makefile.in dhcp-4.1.0-hl/minires/Makefile.in
 --- dhcp-4.1.0/minires/Makefile.in	2008-12-05 21:14:54.000000000 +0100
-+++ dhcp-4.1.0-hl/minires/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/minires/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -88,6 +88,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -501,7 +501,7 @@ diff -ruN dhcp-4.1.0/minires/Makefile.in dhcp-4.1.0-hl/minires/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/omapip/Makefile.in dhcp-4.1.0-hl/omapip/Makefile.in
 --- dhcp-4.1.0/omapip/Makefile.in	2008-12-05 21:14:55.000000000 +0100
-+++ dhcp-4.1.0-hl/omapip/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/omapip/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -107,6 +107,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -548,7 +548,7 @@ diff -ruN dhcp-4.1.0/omapip/Makefile.in dhcp-4.1.0-hl/omapip/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/relay/Makefile.in dhcp-4.1.0-hl/relay/Makefile.in
 --- dhcp-4.1.0/relay/Makefile.in	2008-12-05 21:14:56.000000000 +0100
-+++ dhcp-4.1.0-hl/relay/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/relay/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -87,6 +87,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@
@@ -595,14 +595,14 @@ diff -ruN dhcp-4.1.0/relay/Makefile.in dhcp-4.1.0-hl/relay/Makefile.in
  sysconfdir = @sysconfdir@
 diff -ruN dhcp-4.1.0/server/dhcp.c dhcp-4.1.0-hl/server/dhcp.c
 --- dhcp-4.1.0/server/dhcp.c	2008-11-03 19:13:58.000000000 +0100
-+++ dhcp-4.1.0-hl/server/dhcp.c	2009-04-16 10:41:23.000000000 +0200
++++ dhcp-4.1.0-hl/server/dhcp.c	2009-04-16 22:13:36.000000000 +0200
 @@ -797,7 +797,9 @@
  
  	/* If we found a lease, release it. */
  	if (lease && lease -> ends > cur_time) {
 -		release_lease (lease, packet);
 + 	  
-+	  ldb_log_lease(lease);
++	  ldb_log_release(lease);
 +	  release_lease (lease, packet);
  	} 
  	log_info ("%s", msgbuf);
@@ -611,14 +611,14 @@ diff -ruN dhcp-4.1.0/server/dhcp.c dhcp-4.1.0-hl/server/dhcp.c
  		   ? inet_ntoa (state -> giaddr)
  		   : state -> ip -> name));
  
-+	ldb_log_release(lease);
++	ldb_log_lease(lease);
 +	
  	/* Set up the hardware address... */
  	hto.hlen = lease -> hardware_addr.hlen;
  	memcpy (hto.hbuf, lease -> hardware_addr.hbuf, hto.hlen);
 diff -ruN dhcp-4.1.0/server/dhcpd.c dhcp-4.1.0-hl/server/dhcpd.c
 --- dhcp-4.1.0/server/dhcpd.c	2008-03-18 19:28:14.000000000 +0100
-+++ dhcp-4.1.0-hl/server/dhcpd.c	2009-01-23 09:37:33.000000000 +0100
++++ dhcp-4.1.0-hl/server/dhcpd.c	2009-04-16 22:12:18.000000000 +0200
 @@ -33,7 +33,7 @@
   */
  
@@ -658,8 +658,8 @@ diff -ruN dhcp-4.1.0/server/dhcpd.c dhcp-4.1.0-hl/server/dhcpd.c
  				usage ();
 diff -ruN dhcp-4.1.0/server/hl_ldb.c dhcp-4.1.0-hl/server/hl_ldb.c
 --- dhcp-4.1.0/server/hl_ldb.c	1970-01-01 01:00:00.000000000 +0100
-+++ dhcp-4.1.0-hl/server/hl_ldb.c	2009-04-16 10:43:47.000000000 +0200
-@@ -0,0 +1,250 @@
++++ dhcp-4.1.0-hl/server/hl_ldb.c	2009-04-16 22:29:44.000000000 +0200
+@@ -0,0 +1,252 @@
 +/* ldb.c
 +
 +   Local database glue. */
@@ -693,7 +693,7 @@ diff -ruN dhcp-4.1.0/server/hl_ldb.c dhcp-4.1.0-hl/server/hl_ldb.c
 +static int ldb_lasttime=0;
 +static sqlite3 *ldb=NULL;
 +
-+void ldb_log_lease(struct lease *lease) {
++void ldb_log_release(struct lease *lease) {
 +  int ok=1, r;
 +  struct sqlite3_stmt* ldb_query;
 +  struct option_cache *ridopt = NULL, *cidopt = NULL;
@@ -787,7 +787,7 @@ diff -ruN dhcp-4.1.0/server/hl_ldb.c dhcp-4.1.0-hl/server/hl_ldb.c
 +  
 +}
 +
-+void ldb_log_release(struct lease *lease) {
++void ldb_log_lease(struct lease *lease) {
 +  int ok=1, r;
 +  struct sqlite3_stmt* ldb_query;
 +  struct option_cache *ridopt = NULL, *cidopt = NULL;
@@ -796,29 +796,31 @@ diff -ruN dhcp-4.1.0/server/hl_ldb.c dhcp-4.1.0-hl/server/hl_ldb.c
 +  if (!path_dhcpd_ldb ||
 +      state -> offer != DHCPACK ||
 +      !(lease -> starts) ||
-+      !(lease -> ends) ||
-+      !ldb) {
++      !(lease -> ends)) {
 +    return;
 +  }
-+  if (sqlite3_open(path_dhcpd_ldb, &ldb) != SQLITE_OK ||
-+      sqlite3_prepare(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, rtype integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))",
-+		      -1, &ldb_query, NULL) != SQLITE_OK) {
-+    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
-+    ok = 0;
-+  }
-+			
-+  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
-+      usleep(1000);
++  
++  if (!ldb) {
++    if (sqlite3_open(path_dhcpd_ldb, &ldb) != SQLITE_OK ||
++	sqlite3_prepare(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, rtype integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))",
++			-1, &ldb_query, NULL) != SQLITE_OK) {
++      log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++      ok = 0;
 +    }
-+			
-+  if (ok && r != SQLITE_DONE) {
-+    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
-+    ok = 0;
-+  }
-+			
-+  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
-+    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
-+    ok = 0;
++    
++    if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++	usleep(1000);
++      }
++    
++    if (ok && r != SQLITE_DONE) {
++      log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++      ok = 0;
++    }
++    
++    if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++      log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++      ok = 0;
++    }
 +  }
 +		
 +  if (ok) {
@@ -912,7 +914,7 @@ diff -ruN dhcp-4.1.0/server/hl_ldb.c dhcp-4.1.0-hl/server/hl_ldb.c
 +}
 diff -ruN dhcp-4.1.0/server/Makefile.am dhcp-4.1.0-hl/server/Makefile.am
 --- dhcp-4.1.0/server/Makefile.am	2007-05-29 18:32:11.000000000 +0200
-+++ dhcp-4.1.0-hl/server/Makefile.am	2009-04-16 10:38:41.000000000 +0200
++++ dhcp-4.1.0-hl/server/Makefile.am	2009-04-16 22:12:18.000000000 +0200
 @@ -4,7 +4,7 @@
  sbin_PROGRAMS = dhcpd
  dhcpd_SOURCES = dhcpd.c dhcp.c bootp.c confpars.c db.c class.c failover.c \
@@ -924,7 +926,7 @@ diff -ruN dhcp-4.1.0/server/Makefile.am dhcp-4.1.0-hl/server/Makefile.am
  dhcpd_LDADD = ../common/libdhcp.a ../omapip/libomapi.a ../dst/libdst.a \
 diff -ruN dhcp-4.1.0/server/Makefile.in dhcp-4.1.0-hl/server/Makefile.in
 --- dhcp-4.1.0/server/Makefile.in	2008-12-05 21:14:57.000000000 +0100
-+++ dhcp-4.1.0-hl/server/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/server/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -54,7 +54,8 @@
  	confpars.$(OBJEXT) db.$(OBJEXT) class.$(OBJEXT) \
  	failover.$(OBJEXT) omapi.$(OBJEXT) mdb.$(OBJEXT) \
@@ -998,7 +1000,7 @@ diff -ruN dhcp-4.1.0/server/Makefile.in dhcp-4.1.0-hl/server/Makefile.in
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/omapi.Po@am__quote@
 diff -ruN dhcp-4.1.0/tests/Makefile.in dhcp-4.1.0-hl/tests/Makefile.in
 --- dhcp-4.1.0/tests/Makefile.in	2008-12-05 21:14:58.000000000 +0100
-+++ dhcp-4.1.0-hl/tests/Makefile.in	2009-04-16 10:39:00.000000000 +0200
++++ dhcp-4.1.0-hl/tests/Makefile.in	2009-04-16 22:12:18.000000000 +0200
 @@ -81,6 +81,7 @@
  ECHO_T = @ECHO_T@
  EGREP = @EGREP@

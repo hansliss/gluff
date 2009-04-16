@@ -15,6 +15,33 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 Welcome to Gluff!
 
+Gluff is the result of an idea by Magnus Törnros <magnus.tornros@systeamnat.se>
+to collect and collate dhcp logging information from multiple DHCP servers
+into a database for later retrieval, and the idea soon grew to the current
+design after a number of brainstorming sessions between us.
+
+Gluff was developed for a well-defined purpose: In an environment with
+DHCP servers in a failover configuration and switches using DHCP snooping
+and option 82 to imprint switch ID and switch port into passing DHCP
+requests, it is used to keep track of all leases from start to end,
+including the remote-id and circuit-id. It must be possible to determine
+where a particular IP address is connected at any given time.
+
+The theory is simple: Unless the failover mechanism is failing, each DHCPACK
+sent out, from any DHCP server in the system, denotes an official lease or
+lease extension. Thus, for every DHCPACK, our patched dhcpd logs an entry
+in a "queue" table in a local sqlite3 database (chosen because it's supposed
+to have high performance and be easy to use).
+
+Another process on the DHCP server computer, gluff, regularly consumes
+entries from the queue, accesses a MySQL database on a remote server shared
+by all the DHCP servers, and figures out whether the entry denotes a new
+lease or a lease extension. gluff updates the MySQL database accordingly,
+and so the database will contain correct lease records for every distinct
+lease ever granted.
+
+This is what you need to do:
+
 On the DB server:
 
 In terms of Ubuntu packages, you will need mysql-server, and you will also probably want to set up

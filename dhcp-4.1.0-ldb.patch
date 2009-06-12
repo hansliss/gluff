@@ -788,7 +788,7 @@ diff -ruN dhcp-4.1.0/server/hl_ldb.c dhcp-4.1.0-hl/server/hl_ldb.c
 +}
 +
 +void ldb_log_lease(struct lease *lease) {
-+  int ok=1, r;
++  int ok=1, r=0;
 +  struct sqlite3_stmt* ldb_query;
 +  struct option_cache *ridopt = NULL, *cidopt = NULL;
 +  struct lease_state *state = lease -> state;  

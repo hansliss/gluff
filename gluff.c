@@ -33,6 +33,8 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /* Local SQL queries for sqlite3 */
 
+#define DEBUG 1
+
 #define RESET_LSQL "UPDATE lease_queue set claimed=0"
 #define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0"
 #define GET_LSQL "SELECT start,rtype,end,ip,hw,cid,rid FROM lease_queue where claimed=? order by start,idx"
@@ -49,10 +51,14 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define MAKEIP_RSQL "INSERT INTO ips (value) values (?)"
 #define MAKEHW_RSQL "INSERT INTO hws (value) values (?)"
 
-#define FIND_LEASE_RSQL "SELECT lstart,lend,hw,cid,rid from leases where ip=? and lstart<=? and lend>=?"
+#define FIND_LEASE_RSQL "SELECT lstart,lend,hw,cid,rid from leases where ip=? and lstart<=? and lend>?"
 #define CUTOFF_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend>=?"
 #define PROLONG_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend<? and lend>=?"
+#define REMOVE_LEASE_RSQL "DELETE from leases where ip=? and lstart<=? and lend>=?"
 #define MAKE_LEASE_RSQL "REPLACE INTO leases (ip,lstart,lend,hw,cid,rid) values (?,?,?,?,?,?)"
+
+#define max(a,b) ((b)>(a)?(b):(a))
+#define min(a,b) ((b)<(a)?(b):(a))
 
 
 /* Print usage text */
@@ -61,6 +67,9 @@ void usage(char *progname) {
   fprintf(stderr, "\t-p <remote db password> -d <remote db database>\n");
   fprintf(stderr, "\t[-R (reset claims)] [-F (do not fork)] [-Q (be quiet)]\n");
 }
+
+int do_make_lease(MYSQL *db, long ip, time_t start, time_t end, long hw, long cid, long rid);
+
 
 /* Get a numeric id from one of the lexical tables, creating a new record if none exists */
 long get_id(MYSQL *db, const unsigned char *val, char *getq, char *setq) {
@@ -157,6 +166,37 @@ long get_id(MYSQL *db, const unsigned char *val, char *getq, char *setq) {
   return id;
 }
 
+void mytime2tm(MYSQL_TIME *mtt, struct tm *tmt) {
+  tmt->tm_year = mtt->year - 1900;
+  tmt->tm_mon = mtt->month - 1;
+  tmt->tm_mday = mtt->day;
+  tmt->tm_hour = mtt->hour;
+  tmt->tm_min = mtt->minute;
+  tmt->tm_sec = mtt->second;
+}
+
+time_t mytime2timet(MYSQL_TIME *mtt) {
+  struct tm tm_tmp;
+  mytime2tm(mtt, &tm_tmp);
+  return mktime(&tm_tmp);
+}
+
+void tm2mytime(struct tm *tmt, MYSQL_TIME *mtt) {
+  mtt->year = tmt->tm_year + 1900;
+  mtt->month = tmt->tm_mon + 1;
+  mtt->day = tmt->tm_mday;
+  mtt->hour = tmt->tm_hour;
+  mtt->minute = tmt->tm_min;
+  mtt->second = tmt->tm_sec;
+  mtt->second_part = 0;
+  mtt->neg = 0;
+}
+
+void timet2mytime(time_t t, MYSQL_TIME *mtt) {
+  struct tm *tm_tmp=localtime(&t);
+  tm2mytime(tm_tmp, mtt);
+}
+
 int rdb_cid_id(MYSQL *db, const unsigned char *val) {
   return get_id(db, val, GETCID_RSQL, MAKECID_RSQL);
 }
@@ -173,6 +213,56 @@ int rdb_hw_id(MYSQL *db, const unsigned char *val) {
   return get_id(db, val, GETHW_RSQL, MAKEHW_RSQL);
 }
 
+/* Replace multiple overlapping leases with a single new one */
+int do_replace_leases(MYSQL *db, long ip, time_t searchtime, time_t start, time_t end, long hw, long cid, long rid) {
+  MYSQL_STMT *stmt=NULL;
+  MYSQL_BIND param[5];
+    
+  MYSQL_TIME my_searchtime;
+
+  timet2mytime(searchtime, &my_searchtime);
+
+  if ((stmt = mysql_stmt_init(db)) == NULL) {
+    syslog(LOG_ERR, "mysql_stmt_init(): %s", mysql_error(db));
+    return -1;
+  }
+
+  if (mysql_stmt_prepare(stmt, REMOVE_LEASE_RSQL, strlen(REMOVE_LEASE_RSQL)) != 0) {
+    syslog(LOG_ERR, "mysql_stmt_prepare(): %s", mysql_error(db));
+    return -1;
+  }
+
+  memset ((void *) param, 0, sizeof (param));
+
+  param[0].buffer_type = MYSQL_TYPE_LONG;
+  param[0].buffer = (void *)&ip;
+  param[0].is_unsigned = 0;
+  param[0].is_null = 0;
+
+  param[1].buffer_type = MYSQL_TYPE_DATETIME;
+  param[1].buffer = (void *) &my_searchtime;
+  param[1].is_null = 0;
+
+  param[2].buffer_type = MYSQL_TYPE_DATETIME;
+  param[2].buffer = (void *) &my_searchtime;
+  param[2].is_null = 0;
+
+  if (mysql_stmt_bind_param(stmt, param) != 0) {
+    syslog(LOG_ERR, "mysql_bind_param(): %s", mysql_error(db));
+    return -1;
+  }
+
+  if (mysql_stmt_execute(stmt) != 0) {
+    syslog(LOG_ERR, "mysql_execute(): %s", mysql_error(db));
+    return -1;
+  }
+ 
+  mysql_stmt_close(stmt);
+
+  return do_make_lease(db, ip, start, end, hw, cid, rid);
+}
+
+
 /* Try to find an active lease for the IP address in question, and return all the data */
 int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *thatend,
 		  long *thathw, long *thatcid, long *thatrid) {
@@ -182,7 +272,7 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
   MYSQL_TIME my_start;
   MYSQL_TIME my_thatstart, my_thatend;
 
-  struct tm *tm_tmp=localtime(&start);
+  timet2mytime(start, &my_start);
 
   if ((stmt = mysql_stmt_init(db)) == NULL) {
     syslog(LOG_ERR, "mysql_stmt_init(): %s", mysql_error(db));
@@ -193,15 +283,6 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
     syslog(LOG_ERR, "mysql_stmt_prepare(): %s", mysql_error(db));
     return -1;
   }
-
-  my_start.year = tm_tmp->tm_year + 1900;
-  my_start.month = tm_tmp->tm_mon + 1;
-  my_start.day = tm_tmp->tm_mday;
-  my_start.hour = tm_tmp->tm_hour;
-  my_start.minute = tm_tmp->tm_min;
-  my_start.second = tm_tmp->tm_sec;
-  my_start.second_part = 0;
-  my_start.neg = 0;
 
   memset ((void *) param, 0, sizeof (param));
 
@@ -266,24 +347,25 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
   if (mysql_stmt_num_rows(stmt) >= 1) {
     mysql_stmt_fetch(stmt);
 
-    tm_tmp->tm_year = my_thatstart.year - 1900;
-    tm_tmp->tm_mon = my_thatstart.month - 1;
-    tm_tmp->tm_mday = my_thatstart.day;
-    tm_tmp->tm_hour = my_thatstart.hour;
-    tm_tmp->tm_min = my_thatstart.minute;
-    tm_tmp->tm_sec = my_thatstart.second;
-    *thatstart = mktime(tm_tmp);
+    *thatstart = mytime2timet(&my_thatstart);
+    *thatend = mytime2timet(&my_thatend);
 
-    tm_tmp->tm_year = my_thatend.year - 1900;
-    tm_tmp->tm_mon = my_thatend.month - 1;
-    tm_tmp->tm_mday = my_thatend.day;
-    tm_tmp->tm_hour = my_thatend.hour;
-    tm_tmp->tm_min = my_thatend.minute;
-    tm_tmp->tm_sec = my_thatend.second;
-    *thatend = mktime(tm_tmp);
+    if (mysql_stmt_num_rows(stmt) > 1) {
+#if DEBUG
+      syslog(LOG_DEBUG,"Multiple rows exist. Compacting...");
+#endif
+      while (mysql_stmt_fetch(stmt)) {
+	*thatstart = min(*thatstart, mytime2timet(&my_thatstart));
+	*thatend = max(*thatstart, mytime2timet(&my_thatend));
+      }
+      mysql_stmt_free_result(stmt);
+      mysql_stmt_close(stmt);
+      if (do_replace_leases(db, ip, start, *thatstart, *thatend, *thathw, *thatcid, *thatrid) != 0) return -17;
+    } else {
+      mysql_stmt_free_result(stmt);
+      mysql_stmt_close(stmt);
+    }
 
-    mysql_stmt_free_result(stmt);
-    mysql_stmt_close(stmt);
     return 1;
   }
 
@@ -300,35 +382,9 @@ int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t
   MYSQL_TIME my_thatstart, my_thatend;
   MYSQL_TIME my_newend;
 
-  struct tm *tm_tmp=localtime(&thatstart);
-  my_thatstart.year = tm_tmp->tm_year + 1900;
-  my_thatstart.month = tm_tmp->tm_mon + 1;
-  my_thatstart.day = tm_tmp->tm_mday;
-  my_thatstart.hour = tm_tmp->tm_hour;
-  my_thatstart.minute = tm_tmp->tm_min;
-  my_thatstart.second = tm_tmp->tm_sec;
-  my_thatstart.second_part = 0;
-  my_thatstart.neg = 0;
-
-  tm_tmp=localtime(&thatend);
-  my_thatend.year = tm_tmp->tm_year + 1900;
-  my_thatend.month = tm_tmp->tm_mon + 1;
-  my_thatend.day = tm_tmp->tm_mday;
-  my_thatend.hour = tm_tmp->tm_hour;
-  my_thatend.minute = tm_tmp->tm_min;
-  my_thatend.second = tm_tmp->tm_sec;
-  my_thatend.second_part = 0;
-  my_thatend.neg = 0;
-
-  tm_tmp=localtime(&newend);
-  my_newend.year = tm_tmp->tm_year + 1900;
-  my_newend.month = tm_tmp->tm_mon + 1;
-  my_newend.day = tm_tmp->tm_mday;
-  my_newend.hour = tm_tmp->tm_hour;
-  my_newend.minute = tm_tmp->tm_min;
-  my_newend.second = tm_tmp->tm_sec;
-  my_newend.second_part = 0;
-  my_newend.neg = 0;
+  timet2mytime(thatstart, &my_thatstart);
+  timet2mytime(thatend, &my_thatend);
+  timet2mytime(newend, &my_newend);
 
   if ((stmt = mysql_stmt_init(db)) == NULL) {
     syslog(LOG_ERR, "mysql_stmt_init(): %s", mysql_error(db));
@@ -396,25 +452,8 @@ int do_make_lease(MYSQL *db, long ip, time_t start, time_t end, long hw, long ci
     
   MYSQL_TIME my_start, my_end;
 
-  struct tm *tm_tmp=localtime(&start);
-  my_start.year = tm_tmp->tm_year + 1900;
-  my_start.month = tm_tmp->tm_mon + 1;
-  my_start.day = tm_tmp->tm_mday;
-  my_start.hour = tm_tmp->tm_hour;
-  my_start.minute = tm_tmp->tm_min;
-  my_start.second = tm_tmp->tm_sec;
-  my_start.second_part = 0;
-  my_start.neg = 0;
-
-  tm_tmp=localtime(&end);
-  my_end.year = tm_tmp->tm_year + 1900;
-  my_end.month = tm_tmp->tm_mon + 1;
-  my_end.day = tm_tmp->tm_mday;
-  my_end.hour = tm_tmp->tm_hour;
-  my_end.minute = tm_tmp->tm_min;
-  my_end.second = tm_tmp->tm_sec;
-  my_end.second_part = 0;
-  my_end.neg = 0;
+  timet2mytime(start, &my_start);
+  timet2mytime(end, &my_end);
 
   if ((stmt = mysql_stmt_init(db)) == NULL) {
     syslog(LOG_ERR, "mysql_stmt_init(): %s", mysql_error(db));
@@ -705,18 +744,36 @@ int main(int argc, char** argv)
 
 	  int makelease=1;
 	  if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
+#ifdef DEBUG
+	    syslog(LOG_DEBUG, "Found lease in rdb. hw(%ld,%ld), cid(%ld,%ld), rid(%ld,%ld)", hw, thathw, cid, thatcid, rid, thatrid);
+#endif
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {
+#ifdef DEBUG
+	      syslog(LOG_DEBUG, "Difference hw, cid or rid. Cutting off and making a new one");
+#endif
 	      do_update_lease(&rdb, ip, thatstart, thatend, start, 0); // cut off old lease
 	    } else {
 	      if (rtype == 1) {
+#ifdef DEBUG
+		syslog(LOG_DEBUG, "Release. Cutting off the lease I found");
+#endif
 		do_update_lease(&rdb, ip, thatstart, thatend, end, 0); // cut off old lease
 	      } else {
+#ifdef DEBUG
+		syslog(LOG_DEBUG, "Prolonging identical lease");
+#endif
 		do_update_lease(&rdb, ip, thatstart, thatend, end, 1); // prolong lease
 	      }
 	      makelease=0;
 	    }
-	  } else if (r<0) return -16;
+	  } else if (r<0) {
+	    syslog(LOG_ERR, "do_find_lease(): %s", mysql_error(&rdb));
+	    return -16;
+	  }
 	  if (makelease) {
+#ifdef DEBUG
+	    syslog(LOG_DEBUG, "Making new lease entry");
+#endif
 	    if (do_make_lease(&rdb, ip, start, end, hw, cid, rid) != 0) return -17;
 	  }
 	}

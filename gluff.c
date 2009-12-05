@@ -33,7 +33,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /* Local SQL queries for sqlite3 */
 
-#define DEBUG 1
+/*#define DEBUG 1*/
 
 #define RESET_LSQL "UPDATE lease_queue set claimed=0"
 #define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0"
@@ -360,7 +360,7 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
       }
       mysql_stmt_free_result(stmt);
       mysql_stmt_close(stmt);
-      if (do_replace_leases(db, ip, start, *thatstart, *thatend, *thathw, *thatcid, *thatrid) != 0) return -17;
+      //      if (do_replace_leases(db, ip, start, *thatstart, *thatend, *thathw, *thatcid, *thatrid) != 0) return -17;
     } else {
       mysql_stmt_free_result(stmt);
       mysql_stmt_close(stmt);
@@ -749,7 +749,7 @@ int main(int argc, char** argv)
 #endif
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {
 #ifdef DEBUG
-	      syslog(LOG_DEBUG, "Difference hw, cid or rid. Cutting off and making a new one");
+	      syslog(LOG_DEBUG, "Different hw, cid or rid. Cutting off and making a new one");
 #endif
 	      do_update_lease(&rdb, ip, thatstart, thatend, start, 0); // cut off old lease
 	    } else {

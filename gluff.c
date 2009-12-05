@@ -343,7 +343,7 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
     syslog(LOG_ERR, "mysql_store_result(): %s", mysql_error(db));
     return -1;
   }
-  
+
   if (mysql_stmt_num_rows(stmt) >= 1) {
     mysql_stmt_fetch(stmt);
 

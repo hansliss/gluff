@@ -1,0 +1,557 @@
+diff -ruN dhcp-4.1.1/configure dhcp-4.1.1-ldb/configure
+--- dhcp-4.1.1/configure	2010-01-08 01:47:06.000000000 +0100
++++ dhcp-4.1.1-ldb/configure	2010-04-08 10:58:23.000000000 +0200
+@@ -7347,6 +7347,91 @@
+ fi
+ 
+ 
++# find an sqlite3 library
++{ echo "$as_me:$LINENO: checking for library containing sqlite3_open" >&5
++echo $ECHO_N "checking for library containing sqlite3_open... $ECHO_C" >&6; }
++if test "${ac_cv_search_sqlite3_open+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  ac_func_search_save_LIBS=$LIBS
++cat >conftest.$ac_ext <<_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h >>conftest.$ac_ext
++cat >>conftest.$ac_ext <<_ACEOF
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char sqlite3_open ();
++int
++main ()
++{
++return sqlite3_open ();
++  ;
++  return 0;
++}
++_ACEOF
++for ac_lib in '' sqlite3; do
++  if test -z "$ac_lib"; then
++    ac_res="none required"
++  else
++    ac_res=-l$ac_lib
++    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
++  fi
++  rm -f conftest.$ac_objext conftest$ac_exeext
++if { (ac_try="$ac_link"
++case "(($ac_try" in
++  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
++  *) ac_try_echo=$ac_try;;
++esac
++eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
++  (eval "$ac_link") 2>conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 >conftest.err
++  rm -f conftest.er1
++  cat conftest.err >&5
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } && {
++	 test -z "$ac_c_werror_flag" ||
++	 test ! -s conftest.err
++       } && test -s conftest$ac_exeext &&
++       $as_test_x conftest$ac_exeext; then
++  ac_cv_search_sqlite3_open=$ac_res
++else
++  echo "$as_me: failed program was:" >&5
++sed 's/^/| /' conftest.$ac_ext >&5
++
++
++fi
++
++rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
++      conftest$ac_exeext
++  if test "${ac_cv_search_sqlite3_open+set}" = set; then
++  break
++fi
++done
++if test "${ac_cv_search_sqlite3_open+set}" = set; then
++  :
++else
++  ac_cv_search_sqlite3_open=no
++fi
++rm conftest.$ac_ext
++LIBS=$ac_func_search_save_LIBS
++fi
++{ echo "$as_me:$LINENO: result: $ac_cv_search_sqlite3_open" >&5
++echo "${ECHO_T}$ac_cv_search_sqlite3_open" >&6; }
++ac_res=$ac_cv_search_sqlite3_open
++if test "$ac_res" != no; then
++  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
++
++fi
++
++
+ # Solaris needs some libraries for functions
+ { $as_echo "$as_me:$LINENO: checking for library containing socket" >&5
+ $as_echo_n "checking for library containing socket... " >&6; }
+diff -ruN dhcp-4.1.1/configure.ac dhcp-4.1.1-ldb/configure.ac
+--- dhcp-4.1.1/configure.ac	2010-01-07 22:42:14.000000000 +0100
++++ dhcp-4.1.1-ldb/configure.ac	2010-04-08 10:58:23.000000000 +0200
+@@ -423,6 +423,9 @@
+ AC_SEARCH_LIBS(MD5_Init, [crypto])
+ AC_SEARCH_LIBS(MD5Init, [crypto])
+ 
++# find an sqlite3 library
++AC_SEARCH_LIBS(sqlite3_open, [sqlite3])
++
+ # Solaris needs some libraries for functions
+ AC_SEARCH_LIBS(socket, [socket])
+ AC_SEARCH_LIBS(inet_ntoa, [nsl])
+diff -ruN dhcp-4.1.1/includes/config.h.in dhcp-4.1.1-ldb/includes/config.h.in
+--- dhcp-4.1.1/includes/config.h.in	2010-01-08 01:47:06.000000000 +0100
++++ dhcp-4.1.1-ldb/includes/config.h.in	2010-04-08 11:01:36.000000000 +0200
+@@ -127,12 +127,16 @@
+ /* Version number of package */
+ #undef VERSION
+ 
+-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+-   significant byte first (like Motorola and SPARC, unlike Intel and VAX). */
+-#if defined __BIG_ENDIAN__
+-# define WORDS_BIGENDIAN 1
+-#elif ! defined __LITTLE_ENDIAN__
+-# undef WORDS_BIGENDIAN
++/* Define to 1 if on AIX 3.
++   System headers sometimes define this.
++   We just want to avoid a redefinition error message.  */
++#ifndef _ALL_SOURCE
++# undef _ALL_SOURCE
++#endif
++
++/* Enable GNU extensions on systems that have them.  */
++#ifndef _GNU_SOURCE
++# undef _GNU_SOURCE
+ #endif
+ 
+ /* Define to 1 if on MINIX. */
+@@ -173,36 +177,25 @@
+ #undef _POSIX_SOURCE
+ 
+ /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
+-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
++   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
+    #define below would cause a syntax error. */
+ #undef _UINT32_T
+ 
+ /* Define for Solaris 2.5.1 so the uint8_t typedef from <sys/synch.h>,
+-   <pthread.h>, or <semaphore.h> is not used. If the typedef were allowed, the
++   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
+    #define below would cause a syntax error. */
+ #undef _UINT8_T
+ 
+-/* Enable extensions on AIX 3, Interix.  */
+-#ifndef _ALL_SOURCE
+-# undef _ALL_SOURCE
+-#endif
+-/* Enable GNU extensions on systems that have them.  */
+-#ifndef _GNU_SOURCE
+-# undef _GNU_SOURCE
++/* Enable extensions on Solaris.  */
++#ifndef __EXTENSIONS__
++# undef __EXTENSIONS__
+ #endif
+-/* Enable threading extensions on Solaris.  */
+ #ifndef _POSIX_PTHREAD_SEMANTICS
+ # undef _POSIX_PTHREAD_SEMANTICS
+ #endif
+-/* Enable extensions on HP NonStop.  */
+ #ifndef _TANDEM_SOURCE
+ # undef _TANDEM_SOURCE
+ #endif
+-/* Enable general extensions on Solaris.  */
+-#ifndef __EXTENSIONS__
+-# undef __EXTENSIONS__
+-#endif
+-
+ 
+ /* Define to the type of a signed integer type of width exactly 16 bits if
+    such a type exists and the standard includes do not define it. */
+diff -ruN dhcp-4.1.1/includes/dhcpd.h dhcp-4.1.1-ldb/includes/dhcpd.h
+--- dhcp-4.1.1/includes/dhcpd.h	2009-07-23 21:02:09.000000000 +0200
++++ dhcp-4.1.1-ldb/includes/dhcpd.h	2010-04-08 10:58:35.000000000 +0200
+@@ -1657,6 +1657,7 @@
+ 
+ extern const char *path_dhcpd_conf;
+ extern const char *path_dhcpd_db;
++extern const char *path_dhcpd_ldb;
+ extern const char *path_dhcpd_pid;
+ 
+ extern int dhcp_max_agent_option_packet_length;
+@@ -3315,3 +3316,5 @@
+ void mark_phosts_unavailable(void);
+ void mark_interfaces_unavailable(void);
+ 
++void ldb_log_lease(struct lease *lease);
++void ldb_log_release(struct lease *lease);
+diff -ruN dhcp-4.1.1/server/dhcp.c dhcp-4.1.1-ldb/server/dhcp.c
+--- dhcp-4.1.1/server/dhcp.c	2009-07-24 19:22:27.000000000 +0200
++++ dhcp-4.1.1-ldb/server/dhcp.c	2010-04-08 10:58:42.000000000 +0200
+@@ -797,7 +797,9 @@
+ 
+ 	/* If we found a lease, release it. */
+ 	if (lease && lease -> ends > cur_time) {
+-		release_lease (lease, packet);
++ 	  
++	  ldb_log_release(lease);
++	  release_lease (lease, packet);
+ 	} 
+ 	log_info ("%s", msgbuf);
+ #if defined(FAILOVER_PROTOCOL)
+@@ -3080,6 +3082,8 @@
+ 		   ? inet_ntoa (state -> giaddr)
+ 		   : state -> ip -> name));
+ 
++	ldb_log_lease(lease);
++	
+ 	/* Set up the hardware address... */
+ 	hto.hlen = lease -> hardware_addr.hlen;
+ 	memcpy (hto.hbuf, lease -> hardware_addr.hbuf, hto.hlen);
+diff -ruN dhcp-4.1.1/server/dhcpd.c dhcp-4.1.1-ldb/server/dhcpd.c
+--- dhcp-4.1.1/server/dhcpd.c	2010-01-07 22:46:50.000000000 +0100
++++ dhcp-4.1.1-ldb/server/dhcpd.c	2010-04-08 11:01:01.000000000 +0200
+@@ -33,7 +33,7 @@
+  */
+ 
+ static const char copyright[] =
+-"Copyright 2004-2010 Internet Systems Consortium.";
++"Lease queue patch by Hans Liss (Hans@Liss.pp.se) 2008-2010\nCopyright 2004-2010 Internet Systems Consortium.";
+ static const char arr [] = "All rights reserved.";
+ static const char message [] = "Internet Systems Consortium DHCP Server";
+ static const char url [] =
+@@ -160,6 +160,7 @@
+ 
+ const char *path_dhcpd_conf = _PATH_DHCPD_CONF;
+ const char *path_dhcpd_db = _PATH_DHCPD_DB;
++const char *path_dhcpd_ldb = NULL;
+ const char *path_dhcpd_pid = _PATH_DHCPD_PID;
+ 
+ int dhcp_max_agent_option_packet_length = DHCP_MTU_MAX;
+@@ -246,6 +247,7 @@
+ 	int lose;
+ 	int no_dhcpd_conf = 0;
+ 	int no_dhcpd_db = 0;
++	int no_dhcpd_ldb = 0;
+ 	int no_dhcpd_pid = 0;
+ #ifdef DHCPv6
+ 	int local_family_set = 0;
+@@ -339,6 +341,11 @@
+ 				usage ();
+ 			path_dhcpd_db = argv [i];
+ 			no_dhcpd_db = 1;
++		} else if (!strcmp (argv [i], "-ldb")) {
++			if (++i == argc)
++				usage ();
++			path_dhcpd_ldb = argv [i];
++			no_dhcpd_ldb = 1;
+ 		} else if (!strcmp (argv [i], "-pf")) {
+ 			if (++i == argc)
+ 				usage ();
+diff -ruN dhcp-4.1.1/server/hl_ldb.c dhcp-4.1.1-ldb/server/hl_ldb.c
+--- dhcp-4.1.1/server/hl_ldb.c	1970-01-01 01:00:00.000000000 +0100
++++ dhcp-4.1.1-ldb/server/hl_ldb.c	2010-04-08 11:30:01.000000000 +0200
+@@ -0,0 +1,255 @@
++/* ldb.c
++
++   Local database glue. */
++
++/*
++ * Copyright (c) 2009 Hans Liss <Hans@Liss.pp.se>
++ *
++ * Permission to use, copy, modify, and distribute this software for any
++ * purpose with or without fee is hereby granted, provided that the above
++ * copyright notice and this permission notice appear in all copies.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES
++ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR
++ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
++ * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ *
++ */
++
++
++
++#include "dhcpd.h"
++#include <errno.h>
++#include <limits.h>
++#include <sys/time.h>
++#include <sqlite3.h>
++
++static int ldb_idx=1;
++static int ldb_lasttime=0;
++static sqlite3 *ldb=NULL;
++
++int ldb_open() {
++  if (sqlite3_open(path_dhcpd_ldb, &ldb) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    return 0;
++  }
++
++  sqlite3_extended_result_codes(ldb, 1);
++  sqlite3_busy_timeout(ldb, 600);
++
++  if (sqlite3_exec(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, rtype integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))", NULL, NULL, NULL) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    sqlite3_close(ldb);
++    ldb = NULL;
++    return 0;
++  }
++  return 1;
++}
++
++void ldb_log_release(struct lease *lease) {
++  int ok=1, r;
++  struct sqlite3_stmt* ldb_query;
++  struct option_cache *ridopt = NULL, *cidopt = NULL;
++  if (!path_dhcpd_ldb || !ldb) return;
++ 			
++  if (lease -> starts != ldb_lasttime) {
++    ldb_lasttime = lease -> starts;
++    ldb_idx = 1;
++  }
++ 			
++  if (lease -> agent_options) {
++    struct option_cache *oc;
++    pair p;
++    
++    for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++      oc = (struct option_cache *)p -> car;
++      if (oc -> data.len) {
++	if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++	else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++      }
++    }
++  }
++  
++  if (!ldb && !ldb_open()) {
++    log_error("Failed to create/open sqlite3 database");
++    return;
++  }
++
++  if (ok && (sqlite3_prepare_v2(ldb,
++			     "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,1,?,?,?,?,?,?,?)",
++			     -1, &ldb_query, NULL) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 4, time(NULL)) != SQLITE_OK || 
++	     sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++	     sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++					      ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++							       lease -> hardware_addr.hlen - 1,
++							       &lease -> hardware_addr.hbuf [1])
++					      : print_hex_1(lease->uid_len, lease->uid, 60)),
++			       -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok) {
++    if (cidopt) {
++      if (sqlite3_bind_text(ldb_query, 7,
++			    pretty_print_option (cidopt -> option, cidopt -> data.data,
++						 cidopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) {
++    if (ridopt) {
++      if (sqlite3_bind_text(ldb_query, 8,
++			    pretty_print_option (ridopt -> option, ridopt -> data.data,
++						 ridopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++      usleep(1000);
++    }
++  
++  if (ok && r != SQLITE_DONE) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++  
++}
++
++void ldb_log_lease(struct lease *lease) {
++  int ok=1, r=0;
++  struct sqlite3_stmt* ldb_query;
++  struct option_cache *ridopt = NULL, *cidopt = NULL;
++  struct lease_state *state = lease -> state;  
++
++  if (!path_dhcpd_ldb ||
++      state -> offer != DHCPACK ||
++      !(lease -> starts) ||
++      !(lease -> ends)) {
++    return;
++  }
++  
++  if (lease -> starts != ldb_lasttime) {
++    ldb_lasttime = lease -> starts;
++    ldb_idx = 1;
++  }
++  
++  if (lease -> agent_options) {
++    struct option_cache *oc;
++    pair p;
++    
++    for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++      oc = (struct option_cache *)p -> car;
++      if (oc -> data.len) {
++	if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++	else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++      }
++    }
++  }
++  
++  if (!ldb && !ldb_open()) {
++    log_error("Failed to create/open sqlite3 database");
++    return;
++  }
++		
++  if (sqlite3_prepare_v2(ldb,
++			 "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,0,?,?,?,?,?,?,?)",
++			 -1, &ldb_query, NULL) != SQLITE_OK ||
++      sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++      sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++      sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++      sqlite3_bind_int(ldb_query, 4, lease -> ends) != SQLITE_OK || 
++      sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++      sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++				       ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++							lease -> hardware_addr.hlen - 1,
++							&lease -> hardware_addr.hbuf [1])
++				       : print_hex_1(lease->uid_len, lease->uid, 60)),
++			-1, SQLITE_TRANSIENT) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok) {
++    if (cidopt) {
++      if (sqlite3_bind_text(ldb_query, 7,
++			    pretty_print_option (cidopt -> option, cidopt -> data.data,
++						 cidopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) {
++    if (ridopt) {
++      if (sqlite3_bind_text(ldb_query, 8,
++			    pretty_print_option (ridopt -> option, ridopt -> data.data,
++						 ridopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++      usleep(1000);
++    }
++  
++  if (ok && r != SQLITE_DONE) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++  
++}
+diff -ruN dhcp-4.1.1/server/Makefile.am dhcp-4.1.1-ldb/server/Makefile.am
+--- dhcp-4.1.1/server/Makefile.am	2007-05-29 18:32:11.000000000 +0200
++++ dhcp-4.1.1-ldb/server/Makefile.am	2010-04-08 10:58:42.000000000 +0200
+@@ -4,7 +4,7 @@
+ sbin_PROGRAMS = dhcpd
+ dhcpd_SOURCES = dhcpd.c dhcp.c bootp.c confpars.c db.c class.c failover.c \
+ 		omapi.c mdb.c stables.c salloc.c ddns.c dhcpleasequery.c \
+-		dhcpv6.c mdb6.c
++		dhcpv6.c mdb6.c hl_ldb.c
+ 
+ # libomapi.a this is here twice to handle circular library dependencies :(
+ dhcpd_LDADD = ../common/libdhcp.a ../omapip/libomapi.a ../dst/libdst.a \
+diff -ruN dhcp-4.1.1/server/Makefile.in dhcp-4.1.1-ldb/server/Makefile.in
+--- dhcp-4.1.1/server/Makefile.in	2010-01-08 01:47:06.000000000 +0100
++++ dhcp-4.1.1-ldb/server/Makefile.in	2010-04-08 10:58:42.000000000 +0200
+@@ -54,7 +54,8 @@
+ 	confpars.$(OBJEXT) db.$(OBJEXT) class.$(OBJEXT) \
+ 	failover.$(OBJEXT) omapi.$(OBJEXT) mdb.$(OBJEXT) \
+ 	stables.$(OBJEXT) salloc.$(OBJEXT) ddns.$(OBJEXT) \
+-	dhcpleasequery.$(OBJEXT) dhcpv6.$(OBJEXT) mdb6.$(OBJEXT)
++	dhcpleasequery.$(OBJEXT) dhcpv6.$(OBJEXT) mdb6.$(OBJEXT) \
++	hl_ldb.$(OBJEXT)
+ dhcpd_OBJECTS = $(am_dhcpd_OBJECTS)
+ dhcpd_DEPENDENCIES = ../common/libdhcp.a ../omapip/libomapi.a \
+ 	../dst/libdst.a ../dhcpctl/libdhcpctl.a ../minires/libres.a \
+@@ -168,7 +169,7 @@
+ dist_sysconf_DATA = dhcpd.conf
+ dhcpd_SOURCES = dhcpd.c dhcp.c bootp.c confpars.c db.c class.c failover.c \
+ 		omapi.c mdb.c stables.c salloc.c ddns.c dhcpleasequery.c \
+-		dhcpv6.c mdb6.c
++		dhcpv6.c mdb6.c hl_ldb.c
+ 
+ 
+ # libomapi.a this is here twice to handle circular library dependencies :(
+@@ -254,6 +255,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpleasequery.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpv6.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/failover.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hl_ldb.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mdb.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mdb6.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/omapi.Po@am__quote@

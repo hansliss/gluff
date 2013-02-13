@@ -70,4 +70,4 @@ To compile stuff, you also need gcc, build-essentials and possibly more stuff, l
 gluff logs to "local2" so you can set up syslog to handle it according to your wishes.
 
 
-/Hans@Liss.pp.se 2008-07-14
+/Hans@Liss.nu 2008-07-14

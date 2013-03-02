@@ -31,7 +31,7 @@ TARGETS=$(TARGET1)
 SOURCES=$(SOURCES1)
 OBJS=$(OBJS1)
 DISTSRC=aclocal.m4 config.h.in configure configure.in *.patch *.sql $(SOURCES) *.h install-sh Makefile.in mkinstalldirs README
-DISTBIN= $(TARGETS) *.patch *.sql README
+DISTBIN=$(TARGETS) *.patch *.sql README
 
 all: $(TARGETS)
 
@@ -53,18 +53,18 @@ config-clean: confclean-recursive
 
 confclean-recursive: cfg-clean
 
-package: all
-	tar czf $(PRODUCT)-$(VERSION)-bin.tar.gz $(DISTBIN)
-	md5sum $(PRODUCT)-$(VERSION)-bin.tar.gz > $(PRODUCT)-$(VERSION)-bin.tar.gz.md5
-	tar czf $(PRODUCT)-$(VERSION)-src.tar.gz $(DISTSRC)
-	md5sum $(PRODUCT)-$(VERSION)-src.tar.gz > $(PRODUCT)-$(VERSION)-src.tar.gz.md5
-
 cfg-clean:
 	/bin/rm -f Makefile config.h config.status config.cache config.log $(PRODUCT)-*-bin.tar.gz* $(PRODUCT)-*-src.tar.gz*
 
 mostlyclean: clean
 
 maintainer-clean: clean
+
+package: all
+	tar czf $(PRODUCT)-$(VERSION)-bin.tar.gz $(DISTBIN)
+	md5sum $(PRODUCT)-$(VERSION)-bin.tar.gz > $(PRODUCT)-$(VERSION)-bin.tar.gz.md5
+	tar czf $(PRODUCT)-$(VERSION)-src.tar.gz $(DISTSRC)
+	md5sum $(PRODUCT)-$(VERSION)-src.tar.gz > $(PRODUCT)-$(VERSION)-src.tar.gz.md5
 
 # automatic re-running of configure if the configure.in file has changed
 ${srcdir}/configure: configure.in 

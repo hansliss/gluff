@@ -51,6 +51,9 @@ config-clean: confclean-recursive
 
 confclean-recursive: cfg-clean
 
+package: all
+	tar czvf $(PRODUCT)-$(VERSION)-bin.tar.gz $(TARGETS) *.patch *.sql README
+
 cfg-clean:
 	/bin/rm -f Makefile config.h config.status config.cache config.log
 

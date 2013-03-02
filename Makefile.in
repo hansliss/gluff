@@ -30,6 +30,8 @@ OBJS1=gluff.o
 TARGETS=$(TARGET1) 
 SOURCES=$(SOURCES1)
 OBJS=$(OBJS1)
+DISTSRC=aclocal.m4 config.h.in configure configure.in *.patch *.sql $(SOURCES) *.h install-sh Makefile.in mkinstalldirs README
+DISTBIN= $(TARGETS) *.patch *.sql README
 
 all: $(TARGETS)
 
@@ -52,10 +54,11 @@ config-clean: confclean-recursive
 confclean-recursive: cfg-clean
 
 package: all
-	tar czvf $(PRODUCT)-$(VERSION)-bin.tar.gz $(TARGETS) *.patch *.sql README
+	tar czf $(PRODUCT)-$(VERSION)-bin.tar.gz $(DISTBIN)
+	tar czf $(PRODUCT)-$(VERSION)-src.tar.gz $(DISTSRC)
 
 cfg-clean:
-	/bin/rm -f Makefile config.h config.status config.cache config.log
+	/bin/rm -f Makefile config.h config.status config.cache config.log $(PRODUCT)-*-bin.tar.gz $(PRODUCT)-*-src.tar.gz
 
 mostlyclean: clean
 

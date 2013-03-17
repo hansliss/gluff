@@ -33,7 +33,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /* Local SQL queries for sqlite3 */
 
-/*#define DEBUG 1*/
+/* #define DEBUG 1 */
 
 #define RESET_LSQL "UPDATE lease_queue set claimed=0"
 #define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0"
@@ -68,15 +68,15 @@ void usage(char *progname) {
   fprintf(stderr, "\t[-R (reset claims)] [-F (do not fork)] [-Q (be quiet)]\n");
 }
 
-int do_make_lease(MYSQL *db, long ip, time_t start, time_t end, long hw, long cid, long rid);
+int do_make_lease(MYSQL *db, int ip, time_t start, time_t end, int hw, int cid, int rid);
 
 
 /* Get a numeric id from one of the lexical tables, creating a new record if none exists */
-long get_id(MYSQL *db, const unsigned char *val, char *getq, char *setq) {
+int get_id(MYSQL *db, const unsigned char *val, char *getq, char *setq) {
   MYSQL_STMT *stmt=NULL;
   MYSQL_BIND param[1], result[1];
   unsigned long blen;
-  long id;
+  int id;
   if ((stmt = mysql_stmt_init(db)) == NULL) {
     syslog(LOG_ERR, "mysql_stmt_init(): %s", mysql_error(db));
     return 0;
@@ -214,7 +214,7 @@ int rdb_hw_id(MYSQL *db, const unsigned char *val) {
 }
 
 /* Replace multiple overlapping leases with a single new one */
-int do_replace_leases(MYSQL *db, long ip, time_t searchtime, time_t start, time_t end, long hw, long cid, long rid) {
+int do_replace_leases(MYSQL *db, int ip, time_t searchtime, time_t start, time_t end, int hw, int cid, int rid) {
   MYSQL_STMT *stmt=NULL;
   MYSQL_BIND param[5];
     
@@ -265,7 +265,7 @@ int do_replace_leases(MYSQL *db, long ip, time_t searchtime, time_t start, time_
 
 /* Try to find an active lease for the IP address in question, and return all the data */
 int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *thatend,
-		  long *thathw, long *thatcid, long *thatrid) {
+		  int *thathw, int *thatcid, int *thatrid) {
   MYSQL_STMT *stmt=NULL;
   MYSQL_BIND param[3], result[5];
     
@@ -375,7 +375,7 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
 }
 
 /* Change the 'end time' for a lease */
-int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t newend, int prolong) {
+int do_update_lease(MYSQL *db, int ip, time_t thatstart, time_t thatend, time_t newend, int prolong) {
   MYSQL_STMT *stmt=NULL;
   MYSQL_BIND param[5];
     
@@ -446,7 +446,7 @@ int do_update_lease(MYSQL *db, long ip, time_t thatstart, time_t thatend, time_t
 }
 
 /* Insert a new lease into the database */
-int do_make_lease(MYSQL *db, long ip, time_t start, time_t end, long hw, long cid, long rid) {
+int do_make_lease(MYSQL *db, int ip, time_t start, time_t end, int hw, int cid, int rid) {
   MYSQL_STMT *stmt=NULL;
   MYSQL_BIND param[6];
     
@@ -694,7 +694,7 @@ int main(int argc, char** argv)
 	else {
 	  const unsigned char *cidstr;
 	  const unsigned char *ridstr;
-	  long cid, rid;
+	  int cid, rid;
 	  // start, end, ip, hw, cid, rid
 	  time_t start = sqlite3_column_int(ldb_query, 0);
 	  int rtype = sqlite3_column_int(ldb_query, 1);
@@ -715,10 +715,10 @@ int main(int argc, char** argv)
 	    ridstr = (unsigned char *)"<NULL>";
 	    rid = 0;
 	  }
-	  long ip = rdb_ip_id(&rdb,ipstr);
-	  long hw = rdb_hw_id(&rdb,hwstr);
+	  int ip = rdb_ip_id(&rdb,ipstr);
+	  int hw = rdb_hw_id(&rdb,hwstr);
 	  time_t thatstart, thatend;
-	  long thathw=-1, thatcid=-1, thatrid=-1;
+	  int thathw=-1, thatcid=-1, thatrid=-1;
 	  
 	  if (!(ip * hw)) return -15;
 
@@ -737,7 +737,7 @@ int main(int argc, char** argv)
 	  int makelease=1;
 	  if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
 #ifdef DEBUG
-	    syslog(LOG_DEBUG, "Found lease in rdb. hw(%ld,%ld), cid(%ld,%ld), rid(%ld,%ld)", hw, thathw, cid, thatcid, rid, thatrid);
+	    syslog(LOG_DEBUG, "Found lease in rdb. hw(%d,%d), cid(%d,%d), rid(%d,%d)", hw, thathw, cid, thatcid, rid, thatrid);
 #endif
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {
 #ifdef DEBUG

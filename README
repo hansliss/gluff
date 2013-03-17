@@ -48,7 +48,7 @@ In terms of Ubuntu packages, you will need mysql-server, and you will also proba
 phpmyadmin, which will happily give you apache, php5-mysql and other stuff.
 
  * Configure mysql to listen to network interfaces - check "bind-address" in /etc/mysql/my.cnf or wherever it is.
- * Create a database (here called dhcpd_leases), and a user with permission to connect from the DHCP servers:
+ * Create a database (here called dhcpd_leases), and a user with permission to connect from the DHCP servers (substiture your own server addresses here):
     create database dhcpd_leases
     grant all on dhcpd_leases.* to 'dhcpd'@'192.168.10.10' identified by 'foobar'
     grant all on dhcpd_leases.* to 'dhcpd'@'192.168.11.10' identified by 'foobar'
@@ -61,14 +61,21 @@ You will want at least the following: libmysqlclient15-dev, libmysqlclient15off,
 Optional are mysql-client and sqlite3
 To compile stuff, you also need gcc, build-essentials and possibly more stuff, like kernel headers
 
- * Patch dhcpd-4.1.0a1, build, install and run it with the -ldb parameter to point out an sqlite3 database, here "/var/db/dhcpd_queue.db3"
- * Configure, build and install gluff
+ * Download and patch the version of ISC dhcp that you want to use, build, install and run it with the -ldb parameter to point out an sqlite3 database, here "/var/db/dhcpd_queue.db3"
+ * Configure, build and install gluff - it will by default install into /opt/gluff
  * Run gluff with the following command
        /opt/gluff/bin/gluff -l /var/db/dhcpd_queue.db3 -h 192.168.15.10 -udhcpd -pfoobar -ddhcpd_leases -R
    where 192.168.15.10 is the address of the DB server.
 
 gluff logs to "local2" so you can set up syslog to handle it according to your wishes.
 
+-------------------------------------------------------------
+If you are upgrading from version 1.7.3 or older:
+Database changes in 1.7.4
 
-/Hans@Liss.nu 2008-07-14
+If you are already running gluff and are upgrading to version 1.7.4, you should add the new 'id' field in the MySQL database. It's not currently used by gluff, but future additions to the system will take advantage of the new key field. Here's how to add it:
+
+   alter table leases drop primary key,add id int auto_increment not null first, add primary key(id)
+
+/Hans@Liss.nu 2013-03-17
 

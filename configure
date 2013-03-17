@@ -2015,7 +2015,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 PRODUCT=gluff
-VERSION=1.9-SNAPSHOT
+VERSION=1.9
 ac_config_headers="$ac_config_headers config.h"
 
 

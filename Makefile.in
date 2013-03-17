@@ -31,8 +31,8 @@ TARGETS=$(TARGET1)
 SOURCES=$(SOURCES1)
 HEADERS=
 OBJS=$(OBJS1)
-DISTSRC=aclocal.m4 config.h.in configure configure.in *.patch *.sql $(SOURCES) $(HEADERS) install-sh Makefile.in mkinstalldirs README scripts
-DISTBIN=$(TARGETS) *.patch *.sql README scripts
+DISTSRC=aclocal.m4 config.h.in configure configure.in *.patch *.sql $(SOURCES) $(HEADERS) install-sh Makefile.in mkinstalldirs README scripts/gluff
+DISTBIN=$(TARGETS) *.patch *.sql README scripts/gluff
 
 all: $(TARGETS)
 

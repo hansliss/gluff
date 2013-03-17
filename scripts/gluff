@@ -1,0 +1,70 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:        gluff
+# Required-Start:  $dhcpd $network $remote_fs $syslog
+# Required-Stop:   $network $remote_fs $syslog
+# Default-Start:   2 3 4 5
+# Default-Stop:    0 1 6
+# Short-Description: Start Gluff server
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
+
+. /lib/lsb/init-functions
+
+DAEMON=/opt/gluff/bin/gluff
+PIDFILE=/var/run/gluff.pid
+
+test -x $DAEMON || exit 5
+
+GLUFF_DBHOST=192.168.15.10
+GLUFF_DBUSER=dhcpd
+GLUFF_DBPWD=foobar
+GLUFF_DBDB=dhcpd_leases
+GLUFF_LDB=/var/db/dhcpd_queue.db3
+
+if [ -r /etc/default/gluff ]; then
+	. /etc/default/gluff
+fi
+
+GLUFF_OPTS="$GLUFF_OPTS -l $GLUFF_LDB -h $GLUFF_DBHOST -u $GLUFF_DBUSER -p $GLUFF_DBPWD -d $GLUFF_DBDB -R -P $PIDFILE"
+
+if [ "$GLUFF_DEBUG" = "yes" ]; then
+    GLUFF_OPTS="$GLUFF_OPTS -D"
+fi
+
+case $1 in
+	start)
+		log_daemon_msg "Starting Gluff server" "gluff"
+  		start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --startas $DAEMON -- $GLUFF_OPTS
+		status=$?
+		log_end_msg $status
+  		;;
+	stop)
+		log_daemon_msg "Stopping Gluff server" "gluff"
+  		start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+		log_end_msg $?
+		rm -f $PIDFILE
+  		;;
+	restart|force-reload)
+		$0 stop && sleep 2 && $0 start
+  		;;
+	try-restart)
+		if $0 status >/dev/null; then
+			$0 restart
+		else
+			exit 0
+		fi
+		;;
+	reload)
+		exit 3
+		;;
+	status)
+		status_of_proc $DAEMON "Gluff server"
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|try-restart|force-reload|status}"
+		exit 2
+		;;
+esac

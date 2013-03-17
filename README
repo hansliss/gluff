@@ -69,6 +69,23 @@ To compile stuff, you also need gcc, build-essentials and possibly more stuff, l
 
 gluff logs to "local2" so you can set up syslog to handle it according to your wishes.
 
+Gluff autostart
+--------------------
+If you want gluff to start automatically like other system daemons, you can use the script provided in the "scripts" subdirectory:
+These instructions are for Ubuntu, but there are equivalent provisions in all Linux distributions and it should be easy enough to adapt the instructions.
+* Put the script in /etc/init.d
+* Run the command "sudo update-rc.d gluff defaults"
+* Create a file /etc/default/gluff with settings like these, adjusted to suit your environment:
+  GLUFF_DBHOST=192.168.15.10
+  GLUFF_DBUSER=dhcpd
+  GLUFF_DBPWD=foobar
+  GLUFF_DBDB=dhcpd_leases
+  GLUFF_LDB=/var/db/dhcpd_queue.db3
+  GLUFF_DEBUG=no
+
+Now you can manually start gluff with the "service" command:
+    service gluff start
+
 -------------------------------------------------------------
 If you are upgrading from version 1.7.3 or older:
 Database changes in 1.7.4

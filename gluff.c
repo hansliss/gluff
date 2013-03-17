@@ -33,8 +33,6 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /* Local SQL queries for sqlite3 */
 
-/* #define DEBUG 1 */
-
 #define RESET_LSQL "UPDATE lease_queue set claimed=0"
 #define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0"
 #define GET_LSQL "SELECT start,rtype,end,ip,hw,cid,rid FROM lease_queue where claimed=? order by start,idx"
@@ -51,7 +49,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define MAKEIP_RSQL "INSERT INTO ips (value) values (?)"
 #define MAKEHW_RSQL "INSERT INTO hws (value) values (?)"
 
-#define FIND_LEASE_RSQL "SELECT lstart,lend,hw,cid,rid from leases where ip=? and lstart<=? and lend>?"
+#define FIND_LEASE_RSQL "SELECT lstart,lend,hw,cid,rid from leases where ip=? and lstart<=? and lend>=?"
 #define CUTOFF_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend>=?"
 #define PROLONG_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend<? and lend>=?"
 #define REMOVE_LEASE_RSQL "DELETE from leases where ip=? and lstart<=? and lend>=?"
@@ -60,12 +58,13 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define max(a,b) ((b)>(a)?(b):(a))
 #define min(a,b) ((b)<(a)?(b):(a))
 
+int gluffdebug=0;
 
 /* Print usage text */
 void usage(char *progname) {
   fprintf(stderr, "Usage: %s -l <local db file> -h <remote db host> -u <remote db user>\n", progname);
   fprintf(stderr, "\t-p <remote db password> -d <remote db database>\n");
-  fprintf(stderr, "\t[-R (reset claims)] [-F (do not fork)] [-Q (be quiet)]\n");
+  fprintf(stderr, "\t[-R (reset claims)] [-F (do not fork)] [-Q (be quiet)] [-P <pidfilename>] [-D (debug)]\n");
 }
 
 int do_make_lease(MYSQL *db, int ip, time_t start, time_t end, int hw, int cid, int rid);
@@ -351,9 +350,9 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
     *thatend = mytime2timet(&my_thatend);
 
     if (mysql_stmt_num_rows(stmt) > 1) {
-#if DEBUG
-      syslog(LOG_DEBUG,"Multiple rows exist. Compacting...");
-#endif
+      if (gluffdebug) {
+	syslog(LOG_DEBUG,"Multiple rows exist. Compacting...");
+      }
       while (mysql_stmt_fetch(stmt)) {
 	*thatstart = min(*thatstart, mytime2timet(&my_thatstart));
 	*thatend = max(*thatstart, mytime2timet(&my_thatend));
@@ -508,6 +507,19 @@ int do_make_lease(MYSQL *db, int ip, time_t start, time_t end, int hw, int cid, 
   return 0;
 }
 
+int writePidFile(char *filename) {
+  int result=1;
+  FILE *pidfile=fopen(filename,"w");
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%ld\n", (long) getpid());
+  if (fwrite(buf, 1, strlen(buf), pidfile) != strlen(buf)) {
+    perror("Writing to PID file");
+    result=0;
+  }
+  fclose(pidfile);
+  return result;
+}
+
 
 /* Main program - parse arguments, fork and start running */
 int main(int argc, char** argv)
@@ -533,9 +545,10 @@ int main(int argc, char** argv)
   char *rdb_user=NULL;
   char *rdb_password=NULL;
   char *rdb_db=NULL;
+  char *pidfile=NULL;
   int rdb_connected=0;
 
-  while ((o=getopt(argc, argv, "l:h:u:p:d:RFQ")) != -1) {
+  while ((o=getopt(argc, argv, "l:h:u:p:d:RFQP:D")) != -1) {
     switch (o) {
     case 'l': ldb_filename = optarg;
       break;
@@ -552,6 +565,10 @@ int main(int argc, char** argv)
     case 'F': do_fork = 0;
       break;
     case 'Q': be_quiet = 1;
+      break;
+    case 'P': pidfile = optarg;
+      break;
+    case 'D': gluffdebug = 1;
       break;
     default:
       usage(argv[0]);
@@ -616,6 +633,10 @@ int main(int argc, char** argv)
     openlog("gluff", syslog_opts, LOG_LOCAL2); 
   }
   
+  if (pidfile)
+    if (!writePidFile(pidfile))
+      exit(-2);
+
   if (sqlite3_open(ldb_filename, &ldb) != SQLITE_OK) {
     syslog(LOG_ERR, "Failed to open sqlite3 database %s: %s", ldb_filename, sqlite3_errmsg(ldb));
     return -10;
@@ -736,24 +757,24 @@ int main(int argc, char** argv)
 
 	  int makelease=1;
 	  if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
-#ifdef DEBUG
-	    syslog(LOG_DEBUG, "Found lease in rdb. hw(%d,%d), cid(%d,%d), rid(%d,%d)", hw, thathw, cid, thatcid, rid, thatrid);
-#endif
+	    if (gluffdebug) {
+	      syslog(LOG_DEBUG, "Found lease in rdb. hw(%d,%d), cid(%d,%d), rid(%d,%d)", hw, thathw, cid, thatcid, rid, thatrid);
+	    }
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {
-#ifdef DEBUG
-	      syslog(LOG_DEBUG, "Different hw, cid or rid. Cutting off and making a new one");
-#endif
+	      if (gluffdebug) {
+		syslog(LOG_DEBUG, "Different hw, cid or rid. Cutting off and making a new one");
+	      }
 	      do_update_lease(&rdb, ip, thatstart, thatend, start, 0); // cut off old lease
 	    } else {
 	      if (rtype == 1) {
-#ifdef DEBUG
-		syslog(LOG_DEBUG, "Release. Cutting off the lease I found");
-#endif
+		if (gluffdebug) {
+		  syslog(LOG_DEBUG, "Release. Cutting off the lease I found");
+		}
 		do_update_lease(&rdb, ip, thatstart, thatend, end, 0); // cut off old lease
 	      } else {
-#ifdef DEBUG
-		syslog(LOG_DEBUG, "Prolonging identical lease");
-#endif
+		if (gluffdebug) {
+		  syslog(LOG_DEBUG, "Prolonging identical lease");
+		}
 		do_update_lease(&rdb, ip, thatstart, thatend, end, 1); // prolong lease
 	      }
 	      makelease=0;
@@ -763,9 +784,9 @@ int main(int argc, char** argv)
 	    return -16;
 	  }
 	  if (makelease) {
-#ifdef DEBUG
-	    syslog(LOG_DEBUG, "Making new lease entry");
-#endif
+	    if (gluffdebug) {
+	      syslog(LOG_DEBUG, "Making new lease entry");
+	    }
 	    if (do_make_lease(&rdb, ip, start, end, hw, cid, rid) != 0) return -17;
 	  }
 	}

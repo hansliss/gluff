@@ -35,12 +35,12 @@ CREATE TABLE `ips` (
 CREATE TABLE `leases` (
   `id` int(11) NOT NULL auto_increment,
   `ip` int(11) NOT NULL default '0',
-  `lstart` datetime NOT NULL default '0000-00-00 00:00:00',
-  `lend` datetime default NULL,
+  `lstart` timestamp NOT NULL default '0000-00-00 00:00:00',
+  `lend` timestamp NOT NULL default '0000-00-00 00:00:00',
   `hw` int(11) default NULL,
   `cid` int(11) default NULL,
   `rid` int(11) default NULL,
-  PRIMARY KEY  (`id')
+  PRIMARY KEY  (`id`)
 );
 
 --

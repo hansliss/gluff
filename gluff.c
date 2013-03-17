@@ -69,6 +69,37 @@ void usage(char *progname) {
 
 int do_make_lease(MYSQL *db, int ip, time_t start, time_t end, int hw, int cid, int rid);
 
+void mytime2tm(MYSQL_TIME *mtt, struct tm *tmt) {
+  tmt->tm_year = mtt->year - 1900;
+  tmt->tm_mon = mtt->month - 1;
+  tmt->tm_mday = mtt->day;
+  tmt->tm_hour = mtt->hour;
+  tmt->tm_min = mtt->minute;
+  tmt->tm_sec = mtt->second;
+  tmt->tm_isdst = -1;
+}
+
+time_t mytime2timet(MYSQL_TIME *mtt) {
+  struct tm tm_tmp;
+  mytime2tm(mtt, &tm_tmp);
+  return mktime(&tm_tmp);
+}
+
+void tm2mytime(struct tm *tmt, MYSQL_TIME *mtt) {
+  mtt->year = tmt->tm_year + 1900;
+  mtt->month = tmt->tm_mon + 1;
+  mtt->day = tmt->tm_mday;
+  mtt->hour = tmt->tm_hour;
+  mtt->minute = tmt->tm_min;
+  mtt->second = tmt->tm_sec;
+  mtt->second_part = 0;
+  mtt->neg = 0;
+}
+
+void timet2mytime(time_t t, MYSQL_TIME *mtt) {
+  struct tm *tm_tmp=localtime(&t);
+  tm2mytime(tm_tmp, mtt);
+}
 
 /* Get a numeric id from one of the lexical tables, creating a new record if none exists */
 int get_id(MYSQL *db, const unsigned char *val, char *getq, char *setq) {
@@ -165,37 +196,6 @@ int get_id(MYSQL *db, const unsigned char *val, char *getq, char *setq) {
   return id;
 }
 
-void mytime2tm(MYSQL_TIME *mtt, struct tm *tmt) {
-  tmt->tm_year = mtt->year - 1900;
-  tmt->tm_mon = mtt->month - 1;
-  tmt->tm_mday = mtt->day;
-  tmt->tm_hour = mtt->hour;
-  tmt->tm_min = mtt->minute;
-  tmt->tm_sec = mtt->second;
-}
-
-time_t mytime2timet(MYSQL_TIME *mtt) {
-  struct tm tm_tmp;
-  mytime2tm(mtt, &tm_tmp);
-  return mktime(&tm_tmp);
-}
-
-void tm2mytime(struct tm *tmt, MYSQL_TIME *mtt) {
-  mtt->year = tmt->tm_year + 1900;
-  mtt->month = tmt->tm_mon + 1;
-  mtt->day = tmt->tm_mday;
-  mtt->hour = tmt->tm_hour;
-  mtt->minute = tmt->tm_min;
-  mtt->second = tmt->tm_sec;
-  mtt->second_part = 0;
-  mtt->neg = 0;
-}
-
-void timet2mytime(time_t t, MYSQL_TIME *mtt) {
-  struct tm *tm_tmp=localtime(&t);
-  tm2mytime(tm_tmp, mtt);
-}
-
 int rdb_cid_id(MYSQL *db, const unsigned char *val) {
   return get_id(db, val, GETCID_RSQL, MAKECID_RSQL);
 }
@@ -238,11 +238,11 @@ int do_replace_leases(MYSQL *db, int ip, time_t searchtime, time_t start, time_t
   param[0].is_unsigned = 0;
   param[0].is_null = 0;
 
-  param[1].buffer_type = MYSQL_TYPE_DATETIME;
+  param[1].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[1].buffer = (void *) &my_searchtime;
   param[1].is_null = 0;
 
-  param[2].buffer_type = MYSQL_TYPE_DATETIME;
+  param[2].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[2].buffer = (void *) &my_searchtime;
   param[2].is_null = 0;
 
@@ -290,11 +290,11 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
   param[0].is_unsigned = 0;
   param[0].is_null = 0;
 
-  param[1].buffer_type = MYSQL_TYPE_DATETIME;
+  param[1].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[1].buffer = (void *) &my_start;
   param[1].is_null = 0;
 
-  param[2].buffer_type = MYSQL_TYPE_DATETIME;
+  param[2].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[2].buffer = (void *) &my_start;
   param[2].is_null = 0;
 
@@ -305,11 +305,11 @@ int do_find_lease(MYSQL *db, int ip, time_t start, time_t *thatstart, time_t *th
 
   memset ((void *) result, 0, sizeof (result));
 
-  result[0].buffer_type = MYSQL_TYPE_DATETIME;
+  result[0].buffer_type = MYSQL_TYPE_TIMESTAMP;
   result[0].buffer = (void *)&my_thatstart;
   result[0].is_null = 0;
 
-  result[1].buffer_type = MYSQL_TYPE_DATETIME;
+  result[1].buffer_type = MYSQL_TYPE_TIMESTAMP;
   result[1].buffer = (void *)&my_thatend;
   result[1].is_null = 0;
 
@@ -403,7 +403,7 @@ int do_update_lease(MYSQL *db, int ip, time_t thatstart, time_t thatend, time_t 
   }
 
   memset ((void *) param, 0, sizeof (param));
-  param[0].buffer_type = MYSQL_TYPE_DATETIME;
+  param[0].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[0].buffer = (void *) &my_newend;
   param[0].is_null = 0;
 
@@ -412,20 +412,20 @@ int do_update_lease(MYSQL *db, int ip, time_t thatstart, time_t thatend, time_t 
   param[1].is_unsigned = 0;
   param[1].is_null = 0;
 
-  param[2].buffer_type = MYSQL_TYPE_DATETIME;
+  param[2].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[2].buffer = (void *) &my_thatstart;
   param[2].is_null = 0;
 
   if (prolong) {
-    param[3].buffer_type = MYSQL_TYPE_DATETIME;
+    param[3].buffer_type = MYSQL_TYPE_TIMESTAMP;
     param[3].buffer = (void *) &my_newend;
     param[3].is_null = 0;
     
-    param[4].buffer_type = MYSQL_TYPE_DATETIME;
+    param[4].buffer_type = MYSQL_TYPE_TIMESTAMP;
     param[4].buffer = (void *) &my_thatend;
     param[4].is_null = 0;
   } else {
-    param[3].buffer_type = MYSQL_TYPE_DATETIME;
+    param[3].buffer_type = MYSQL_TYPE_TIMESTAMP;
     param[3].buffer = (void *) &my_thatend;
     param[3].is_null = 0;
   }
@@ -438,6 +438,10 @@ int do_update_lease(MYSQL *db, int ip, time_t thatstart, time_t thatend, time_t 
   if (mysql_stmt_execute(stmt) != 0) {
     syslog(LOG_ERR, "mysql_execute(): %s", mysql_error(db));
     return -1;
+  }
+
+  if (mysql_stmt_affected_rows(stmt) <= 0) {
+    syslog(LOG_WARNING, "do_update_lease(): No rows were updated!");
   }
  
   mysql_stmt_close(stmt);
@@ -470,11 +474,11 @@ int do_make_lease(MYSQL *db, int ip, time_t start, time_t end, int hw, int cid, 
   param[0].is_unsigned = 0;
   param[0].is_null = 0;
 
-  param[1].buffer_type = MYSQL_TYPE_DATETIME;
+  param[1].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[1].buffer = (void *) &my_start;
   param[1].is_null = 0;
 
-  param[2].buffer_type = MYSQL_TYPE_DATETIME;
+  param[2].buffer_type = MYSQL_TYPE_TIMESTAMP;
   param[2].buffer = (void *) &my_end;
   param[2].is_null = 0;
 
@@ -758,7 +762,8 @@ int main(int argc, char** argv)
 	  int makelease=1;
 	  if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
 	    if (gluffdebug) {
-	      syslog(LOG_DEBUG, "Found lease in rdb. hw(%d,%d), cid(%d,%d), rid(%d,%d)", hw, thathw, cid, thatcid, rid, thatrid);
+	      char buf1[64], buf2[64];
+	      syslog(LOG_DEBUG, "Found lease in rdb. hw(%d,%d), cid(%d,%d), rid(%d,%d) [%s..%s]", hw, thathw, cid, thatcid, rid, thatrid, ctime_r(&thatstart, buf1), ctime_r(&thatend, buf2));
 	    }
 	    if (hw != thathw || cid != thatcid || rid != thatrid) {
 	      if (gluffdebug) {

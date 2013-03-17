@@ -94,5 +94,15 @@ If you are already running gluff and are upgrading to version 1.7.4, you should 
 
    alter table leases drop primary key,add id int auto_increment not null first, add primary key(id)
 
+-------------------------------------------------------------
+If you are upgrading from version 1.10 or older:
+Database changes in 1.10
+
+I have switched to "timestamp" fields in the database. The reason for this is that they store the time and date in UTC format and do automatic conversion between the UTC time and local time. This means that the database contains more "correct" information.
+
+  alter table leases modify lstart timestamp not null default '0000-00-00 00:00:00';
+  alter table leases modify lend timestamp not null default '0000-00-00 00:00:00';
+
+
 /Hans@Liss.nu 2013-03-17
 

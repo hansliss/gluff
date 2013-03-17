@@ -51,7 +51,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #define FIND_LEASE_RSQL "SELECT lstart,lend,hw,cid,rid from leases where ip=? and lstart<=? and lend>=?"
 #define CUTOFF_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend>=?"
-#define PROLONG_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend<? and lend>=?"
+#define PROLONG_LEASE_RSQL "UPDATE leases set lend=? where ip=? and lstart<=? and lend<=? and lend>=?"
 #define REMOVE_LEASE_RSQL "DELETE from leases where ip=? and lstart<=? and lend>=?"
 #define MAKE_LEASE_RSQL "REPLACE INTO leases (ip,lstart,lend,hw,cid,rid) values (?,?,?,?,?,?)"
 

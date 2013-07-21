@@ -34,7 +34,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /* Local SQL queries for sqlite3 */
 
 #define RESET_LSQL "UPDATE lease_queue set claimed=0"
-#define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0"
+#define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0 limit 1000"
 #define GET_LSQL "SELECT start,rtype,end,ip,hw,cid,rid FROM lease_queue where claimed=? order by start,idx"
 #define CLEAR_LSQL "DELETE FROM lease_queue where claimed=?"
 

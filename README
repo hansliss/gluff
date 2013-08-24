@@ -15,7 +15,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 Welcome to Gluff!
 
-Gluff is the result of an idea by Magnus Törnros <magnus.tornros@systeamnat.se>
+Gluff is the result of an idea by Magnus Törnros <magnus.tornros (at) systeamnat.se>
 to collect and collate dhcp logging information from multiple DHCP servers
 into a database for later retrieval, and the idea soon grew to the current
 design after a number of brainstorming sessions between us.

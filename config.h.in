@@ -461,6 +461,8 @@
    system calls can be prevented from restarting.  */
 #define HAVE_RESTARTABLE_SYSCALLS 0
 
+#undef BATCH_LIMIT
+
 /* Some systems supposedly need the following macros to be defined.
    These are handled by the configure script.  If you are configuring
    by hand, you may add appropriate definitions here, or just add them

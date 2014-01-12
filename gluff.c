@@ -30,11 +30,21 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <syslog.h>
 #include <sqlite3.h>
 #include <mysql/mysql.h>
+#include <netinet/in.h>
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#ifdef BATCH_LIMIT
+#define RECLIMIT " limit " STR(BATCH_LIMIT)
+#else
+#define RECLIMIT ""
+#endif
 
 /* Local SQL queries for sqlite3 */
 
 #define RESET_LSQL "UPDATE lease_queue set claimed=0"
-#define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0 limit 1000"
+#define CLAIM_LSQL "UPDATE lease_queue set claimed=? where claimed=0" RECLIMIT
 #define GET_LSQL "SELECT start,rtype,end,ip,hw,cid,rid FROM lease_queue where claimed=? order by start,idx"
 #define CLEAR_LSQL "DELETE FROM lease_queue where claimed=?"
 
@@ -57,6 +67,45 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #define max(a,b) ((b)>(a)?(b):(a))
 #define min(a,b) ((b)<(a)?(b):(a))
+
+typedef struct ldb_entry_s {
+  time_t start;
+  time_t end;
+  int rtype;
+  unsigned char ip[INET_ADDRSTRLEN];
+  unsigned char hw[18];
+  unsigned char *cid;
+  unsigned char *rid;
+  struct ldb_entry_s *next;
+} *ldb_entry;
+
+void addrecord(ldb_entry *list, time_t start, time_t end, int rtype, const unsigned char *ip, const unsigned char *hw, const unsigned char *cid, const unsigned char *rid) {
+  if (*list) addrecord(&((*list)->next), start, end, rtype, ip, hw, cid, rid);
+  else {
+    ldb_entry tmp=(ldb_entry)malloc(sizeof(struct ldb_entry_s));
+    tmp->start = start;
+    tmp->end = end;
+    tmp->rtype = rtype;
+    strcpy((char *)(tmp->ip), (char *)ip);
+    strcpy((char *)(tmp->hw), (char *)hw);
+    if (cid != NULL) tmp->cid = (unsigned char *)strdup((char *)cid);
+    else tmp->cid = NULL;
+    if (rid != NULL) tmp->rid = (unsigned char *)strdup((char *)rid);
+    else tmp->rid = NULL;
+    tmp->next = NULL;
+    (*list) = tmp;
+  }
+}
+
+void freerecords(ldb_entry *list) {
+  if (*list) {
+    freerecords (&((*list)->next));
+    if ((*list)->cid) free((*list)->cid);
+    if ((*list)->rid) free((*list)->rid);
+    free(*list);
+    *list = NULL;
+  }
+}
 
 int gluffdebug=0;
 
@@ -530,9 +579,10 @@ int main(int argc, char** argv)
 {
   sqlite3 *ldb;
   MYSQL rdb;
+  ldb_entry reclist = NULL, tmprec;
 
   struct sqlite3_stmt* ldb_query;
-  int idx=1, r;
+  int r;
   int reset=0;
   int do_fork=1;
   int be_quiet=0;
@@ -691,7 +741,6 @@ int main(int argc, char** argv)
       
       if (now != lasttime) {
 	lasttime = now;
-	idx=1;
       }
 
       if (sqlite3_prepare_v2(ldb, CLAIM_LSQL, strlen(CLAIM_LSQL), &ldb_query, NULL) != SQLITE_OK ||
@@ -713,90 +762,35 @@ int main(int argc, char** argv)
 	syslog(LOG_ERR, "Failed to retrieve queue entries: %s", sqlite3_errmsg(ldb));
 	return -20;
       }
-
+      
       while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY || (r == SQLITE_ROW)) {
 	if (r == SQLITE_BUSY) usleep(300000);
 	else {
 	  const unsigned char *cidstr;
 	  const unsigned char *ridstr;
-	  int cid, rid;
-	  // start, end, ip, hw, cid, rid
-	  time_t start = sqlite3_column_int(ldb_query, 0);
-	  int rtype = sqlite3_column_int(ldb_query, 1);
-	  time_t end = sqlite3_column_int(ldb_query, 2);
-	  const unsigned char *ipstr = sqlite3_column_text(ldb_query, 3);
-	  const unsigned char *hwstr = sqlite3_column_text(ldb_query, 4);
 	  if (sqlite3_column_type(ldb_query, 5) != SQLITE_NULL) {
 	    cidstr = sqlite3_column_text(ldb_query, 5);
-	    cid = rdb_cid_id(&rdb,cidstr);
 	  } else {
-	    cidstr = (unsigned char *)"<NULL>";
-	    cid = 0;
+	    cidstr = NULL;
 	  }
 	  if (sqlite3_column_type(ldb_query, 6) != SQLITE_NULL) {
-	    ridstr = sqlite3_column_text(ldb_query, 6);
-	    rid = rdb_rid_id(&rdb,ridstr);
+	    ridstr = sqlite3_column_text(ldb_query, 6);	
 	  } else {
-	    ridstr = (unsigned char *)"<NULL>";
-	    rid = 0;
+	    ridstr = NULL;
 	  }
-	  int ip = rdb_ip_id(&rdb,ipstr);
-	  int hw = rdb_hw_id(&rdb,hwstr);
-	  time_t thatstart, thatend;
-	  int thathw=-1, thatcid=-1, thatrid=-1;
-	  
-	  if (!(ip * hw)) return -15;
-
-	  char tbuf1[64], tbuf2[64];
-	  
-	  ctime_r(&start, tbuf1);
-	  ctime_r(&end, tbuf2);
-
-	  if (tbuf1[strlen(tbuf1) - 1] == '\n') tbuf1[strlen(tbuf1) - 1] = '\0';
-	  if (tbuf2[strlen(tbuf2) - 1] == '\n') tbuf2[strlen(tbuf2) - 1] = '\0';
-
-	  syslog(LOG_DEBUG, "%s on ip: %s, hw: %s, cid: %s, rid: %s, start: %s, end: %s",
-		 (rtype==1)?"RELEASE":"ACK",
-		 ipstr, hwstr, cidstr, ridstr, tbuf1, tbuf2);
-
-	  int makelease=1;
-	  if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
-	    if (gluffdebug) {
-	      char buf1[64], buf2[64];
-	      syslog(LOG_DEBUG, "Found lease in rdb. hw(%d,%d), cid(%d,%d), rid(%d,%d) [%s..%s]", hw, thathw, cid, thatcid, rid, thatrid, ctime_r(&thatstart, buf1), ctime_r(&thatend, buf2));
-	    }
-	    if (hw != thathw || cid != thatcid || rid != thatrid) {
-	      if (gluffdebug) {
-		syslog(LOG_DEBUG, "Different hw, cid or rid. Cutting off and making a new one");
-	      }
-	      do_update_lease(&rdb, ip, thatstart, thatend, start, 0); // cut off old lease
-	    } else {
-	      if (rtype == 1) {
-		if (gluffdebug) {
-		  syslog(LOG_DEBUG, "Release. Cutting off the lease I found");
-		}
-		do_update_lease(&rdb, ip, thatstart, thatend, end, 0); // cut off old lease
-	      } else {
-		if (gluffdebug) {
-		  syslog(LOG_DEBUG, "Prolonging identical lease");
-		}
-		do_update_lease(&rdb, ip, thatstart, thatend, end, 1); // prolong lease
-	      }
-	      makelease=0;
-	    }
-	  } else if (r<0) {
-	    syslog(LOG_ERR, "do_find_lease(): %s", mysql_error(&rdb));
-	    return -16;
-	  }
-	  if (makelease) {
-	    if (gluffdebug) {
-	      syslog(LOG_DEBUG, "Making new lease entry");
-	    }
-	    if (do_make_lease(&rdb, ip, start, end, hw, cid, rid) != 0) return -17;
-	  }
+	  // resultset = start, rtype, end, ip, hw, cid, rid
+	  // addrecord(list, start, end, rtype, ip, hw, cid, rid)
+	  addrecord(&reclist,
+		    sqlite3_column_int(ldb_query, 0),
+		    sqlite3_column_int(ldb_query, 2),
+		    sqlite3_column_int(ldb_query, 1),
+		    sqlite3_column_text(ldb_query, 3),
+		    sqlite3_column_text(ldb_query, 4),
+		    cidstr,
+		    ridstr);
 	}
       }
-      
+
       if (r != SQLITE_DONE) {
 	syslog(LOG_ERR, "sqlite3_step(): %s", sqlite3_errmsg(ldb));
       }
@@ -804,6 +798,90 @@ int main(int argc, char** argv)
       if (sqlite3_finalize(ldb_query) != SQLITE_OK) {
 	syslog(LOG_ERR, "sqlite3_finalize(): %s", sqlite3_errmsg(ldb));
       }
+      
+      for (tmprec = reclist; tmprec; tmprec = tmprec->next) {
+	unsigned char *cidstr = NULL;
+	unsigned char *ridstr = NULL;
+	int cid, rid;
+	// start, end, ip, hw, cid, rid
+	time_t start = tmprec->start;
+	time_t end = tmprec->end;
+	int rtype = tmprec->rtype;
+	unsigned char *ipstr = tmprec->ip;
+	unsigned char *hwstr = tmprec->hw;
+	if (tmprec->cid != NULL) {
+	  cidstr = tmprec->cid;
+	  cid = rdb_cid_id(&rdb,cidstr);
+	} else {
+	  cidstr = (unsigned char *)"<NULL>";
+	  cid = 0;
+	}
+
+	if (tmprec->rid != NULL) {
+	  ridstr = tmprec->rid;
+	  rid = rdb_rid_id(&rdb,ridstr);
+	} else {
+	  ridstr = (unsigned char *)"<NULL>";
+	  rid = 0;
+	}
+
+	int ip = rdb_ip_id(&rdb,ipstr);
+	int hw = rdb_hw_id(&rdb,hwstr);
+	time_t thatstart, thatend;
+	int thathw=-1, thatcid=-1, thatrid=-1;
+	
+	if (!(ip * hw)) return -15;
+	
+	char tbuf1[64], tbuf2[64];
+	
+	ctime_r(&start, tbuf1);
+	ctime_r(&end, tbuf2);
+	
+	if (tbuf1[strlen(tbuf1) - 1] == '\n') tbuf1[strlen(tbuf1) - 1] = '\0';
+	if (tbuf2[strlen(tbuf2) - 1] == '\n') tbuf2[strlen(tbuf2) - 1] = '\0';
+	
+	syslog(LOG_DEBUG, "%s on ip: %s, hw: %s, cid: %s, rid: %s, start: %s, end: %s",
+	       (rtype==1)?"RELEASE":"ACK",
+	       ipstr, hwstr, cidstr, ridstr, tbuf1, tbuf2);
+	
+	int makelease=1;
+	if ((r=do_find_lease(&rdb, ip, start, &thatstart, &thatend, &thathw, &thatcid, &thatrid)) > 0) {
+	  if (gluffdebug) {
+	    char buf1[64], buf2[64];
+	    syslog(LOG_DEBUG, "Found lease in rdb. hw(%d,%d), cid(%d,%d), rid(%d,%d) [%s..%s]", hw, thathw, cid, thatcid, rid, thatrid, ctime_r(&thatstart, buf1), ctime_r(&thatend, buf2));
+	  }
+	  if (hw != thathw || cid != thatcid || rid != thatrid) {
+	    if (gluffdebug) {
+	      syslog(LOG_DEBUG, "Different hw, cid or rid. Cutting off and making a new one");
+	    }
+	    do_update_lease(&rdb, ip, thatstart, thatend, start, 0); // cut off old lease
+	  } else {
+	    if (rtype == 1) {
+	      if (gluffdebug) {
+		syslog(LOG_DEBUG, "Release. Cutting off the lease I found");
+	      }
+	      do_update_lease(&rdb, ip, thatstart, thatend, end, 0); // cut off old lease
+	    } else {
+	      if (gluffdebug) {
+		syslog(LOG_DEBUG, "Prolonging identical lease");
+	      }
+	      do_update_lease(&rdb, ip, thatstart, thatend, end, 1); // prolong lease
+	    }
+	    makelease=0;
+	  }
+	} else if (r<0) {
+	  syslog(LOG_ERR, "do_find_lease(): %s", mysql_error(&rdb));
+	  return -16;
+	}
+	if (makelease) {
+	  if (gluffdebug) {
+	    syslog(LOG_DEBUG, "Making new lease entry");
+	  }
+	  if (do_make_lease(&rdb, ip, start, end, hw, cid, rid) != 0) return -17;
+	}
+      }
+
+      freerecords(&reclist);
       
       if (sqlite3_prepare_v2(ldb, CLEAR_LSQL, strlen(CLEAR_LSQL), &ldb_query, NULL) != SQLITE_OK ||
 	  sqlite3_bind_int(ldb_query,1,pid) != SQLITE_OK) {

@@ -31,7 +31,7 @@ TARGETS=$(TARGET1)
 SOURCES=$(SOURCES1)
 HEADERS=
 OBJS=$(OBJS1)
-DISTSRC=aclocal.m4 config.h.in configure configure.in *.patch *.sql $(SOURCES) $(HEADERS) install-sh Makefile.in mkinstalldirs README scripts/gluff
+DISTSRC=aclocal.m4 config.h.in configure configure.ac *.patch *.sql $(SOURCES) $(HEADERS) install-sh Makefile.in mkinstalldirs README scripts/gluff
 DISTBIN=$(TARGETS) *.patch *.sql README scripts/gluff
 
 all: $(TARGETS)
@@ -67,13 +67,13 @@ package: all
 	tar czf $(PRODUCT)-$(VERSION)-src.tar.gz $(DISTSRC)
 	md5sum $(PRODUCT)-$(VERSION)-src.tar.gz > $(PRODUCT)-$(VERSION)-src.tar.gz.md5
 
-# automatic re-running of configure if the configure.in file has changed
-${srcdir}/configure: configure.in 
+# automatic re-running of configure if the configure.ac file has changed
+${srcdir}/configure: configure.ac 
 	cd ${srcdir} && autoconf
 
 # autoheader might not change config.h.in, so touch a stamp file
 ${srcdir}/config.h.in: stamp-h.in
-${srcdir}/stamp-h.in: configure.in 
+${srcdir}/stamp-h.in: configure.ac 
 		cd ${srcdir} && autoheader
 		echo timestamp > ${srcdir}/stamp-h.in
 

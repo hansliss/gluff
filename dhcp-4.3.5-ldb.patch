@@ -1,0 +1,654 @@
+diff -ruN dhcp-4.3.5/client/Makefile.in dhcp-4.3.5-hl-ldb/client/Makefile.in
+--- dhcp-4.3.5/client/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/client/Makefile.in	2017-05-27 07:00:27.072421579 +0200
+@@ -342,6 +342,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/client/tests/Makefile.in dhcp-4.3.5-hl-ldb/client/tests/Makefile.in
+--- dhcp-4.3.5/client/tests/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/client/tests/Makefile.in	2017-05-27 07:00:27.128421448 +0200
+@@ -314,6 +314,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/common/Makefile.in dhcp-4.3.5-hl-ldb/common/Makefile.in
+--- dhcp-4.3.5/common/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/common/Makefile.in	2017-05-27 07:00:27.176421336 +0200
+@@ -348,6 +348,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/common/tests/Makefile.in dhcp-4.3.5-hl-ldb/common/tests/Makefile.in
+--- dhcp-4.3.5/common/tests/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/common/tests/Makefile.in	2017-05-27 07:00:27.236421197 +0200
+@@ -352,6 +352,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/configure dhcp-4.3.5-hl-ldb/configure
+--- dhcp-4.3.5/configure	2016-09-27 21:50:01.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/configure	2017-05-27 07:01:33.048267665 +0200
+@@ -722,6 +722,7 @@
+ docdir
+ oldincludedir
+ includedir
++runstatedir
+ localstatedir
+ sharedstatedir
+ sysconfdir
+@@ -826,6 +827,7 @@
+ sysconfdir='${prefix}/etc'
+ sharedstatedir='${prefix}/com'
+ localstatedir='${prefix}/var'
++runstatedir='${localstatedir}/run'
+ includedir='${prefix}/include'
+ oldincludedir='/usr/include'
+ docdir='${datarootdir}/doc/${PACKAGE_TARNAME}'
+@@ -1078,6 +1080,15 @@
+   | -silent | --silent | --silen | --sile | --sil)
+     silent=yes ;;
+ 
++  -runstatedir | --runstatedir | --runstatedi | --runstated \
++  | --runstate | --runstat | --runsta | --runst | --runs \
++  | --run | --ru | --r)
++    ac_prev=runstatedir ;;
++  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
++  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
++  | --run=* | --ru=* | --r=*)
++    runstatedir=$ac_optarg ;;
++
+   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
+     ac_prev=sbindir ;;
+   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
+@@ -1215,7 +1226,7 @@
+ for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
+ 		datadir sysconfdir sharedstatedir localstatedir includedir \
+ 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
+-		libdir localedir mandir
++		libdir localedir mandir runstatedir
+ do
+   eval ac_val=\$$ac_var
+   # Remove trailing slashes.
+@@ -1368,6 +1379,7 @@
+   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
+   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
+   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
++  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
+   --libdir=DIR            object code libraries [EPREFIX/lib]
+   --includedir=DIR        C header files [PREFIX/include]
+   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
+@@ -6358,6 +6370,64 @@
+ done
+ 
+ 
++# find an sqlite3 library
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing sqlite3_open" >&5
++$as_echo_n "checking for library containing sqlite3_open... " >&6; }
++if ${ac_cv_search_sqlite3_open+:} false; then :
++  $as_echo_n "(cached) " >&6
++else
++  ac_func_search_save_LIBS=$LIBS
++cat confdefs.h - <<_ACEOF >conftest.$ac_ext
++/* end confdefs.h.  */
++
++/* Override any GCC internal prototype to avoid an error.
++   Use char because int might match the return type of a GCC
++   builtin and then its argument prototype would still apply.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++char sqlite3_open ();
++int
++main ()
++{
++return sqlite3_open ();
++  ;
++  return 0;
++}
++_ACEOF
++for ac_lib in '' sqlite3; do
++  if test -z "$ac_lib"; then
++    ac_res="none required"
++  else
++    ac_res=-l$ac_lib
++    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
++  fi
++  if ac_fn_c_try_link "$LINENO"; then :
++  ac_cv_search_sqlite3_open=$ac_res
++fi
++rm -f core conftest.err conftest.$ac_objext \
++    conftest$ac_exeext
++  if ${ac_cv_search_sqlite3_open+:} false; then :
++  break
++fi
++done
++if ${ac_cv_search_sqlite3_open+:} false; then :
++
++else
++  ac_cv_search_sqlite3_open=no
++fi
++rm conftest.$ac_ext
++LIBS=$ac_func_search_save_LIBS
++fi
++{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_sqlite3_open" >&5
++$as_echo "$ac_cv_search_sqlite3_open" >&6; }
++ac_res=$ac_cv_search_sqlite3_open
++if test "$ac_res" != no; then :
++  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
++
++fi
++
++
+ # Solaris needs some libraries for functions
+ { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing socket" >&5
+ $as_echo_n "checking for library containing socket... " >&6; }
+diff -ruN dhcp-4.3.5/configure.ac dhcp-4.3.5-hl-ldb/configure.ac
+--- dhcp-4.3.5/configure.ac	2016-09-27 21:18:52.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/configure.ac	2017-05-23 08:55:45.000000000 +0200
+@@ -584,6 +584,9 @@
+ # Look for optional headers.
+ AC_CHECK_HEADERS(sys/socket.h net/if_dl.h net/if6.h regex.h)
+ 
++# find an sqlite3 library
++AC_SEARCH_LIBS(sqlite3_open, [sqlite3])
++
+ # Solaris needs some libraries for functions
+ AC_SEARCH_LIBS(socket, [socket])
+ AC_SEARCH_LIBS(inet_ntoa, [nsl])
+diff -ruN dhcp-4.3.5/dhcpctl/Makefile.in dhcp-4.3.5-hl-ldb/dhcpctl/Makefile.in
+--- dhcp-4.3.5/dhcpctl/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/dhcpctl/Makefile.in	2017-05-27 07:00:27.288421075 +0200
+@@ -317,6 +317,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/includes/dhcpd.h dhcp-4.3.5-hl-ldb/includes/dhcpd.h
+--- dhcp-4.3.5/includes/dhcpd.h	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/includes/dhcpd.h	2017-05-23 08:55:45.000000000 +0200
+@@ -2078,6 +2078,7 @@
+ 
+ extern const char *path_dhcpd_conf;
+ extern const char *path_dhcpd_db;
++extern const char *path_dhcpd_ldb;
+ extern const char *path_dhcpd_pid;
+ 
+ extern int dhcp_max_agent_option_packet_length;
+@@ -3143,6 +3144,9 @@
+ 			     struct iaddr, struct data_string *);
+ #endif /* NSUPDATE */
+ 
++void ldb_log_lease(struct lease *lease);
++void ldb_log_release(struct lease *lease);
++
+ dhcp_ddns_cb_t *ddns_cb_alloc(const char *file, int line);
+ void ddns_cb_free (dhcp_ddns_cb_t *ddns_cb, const char *file, int line);
+ void ddns_cb_forget_zone (dhcp_ddns_cb_t *ddns_cb);
+diff -ruN dhcp-4.3.5/includes/Makefile.in dhcp-4.3.5-hl-ldb/includes/Makefile.in
+--- dhcp-4.3.5/includes/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/includes/Makefile.in	2017-05-27 07:00:27.332420973 +0200
+@@ -271,6 +271,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/Makefile.in dhcp-4.3.5-hl-ldb/Makefile.in
+--- dhcp-4.3.5/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/Makefile.in	2017-05-27 07:00:27.008421728 +0200
+@@ -334,6 +334,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/omapip/Makefile.in dhcp-4.3.5-hl-ldb/omapip/Makefile.in
+--- dhcp-4.3.5/omapip/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/omapip/Makefile.in	2017-05-27 07:00:27.380420861 +0200
+@@ -312,6 +312,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/relay/Makefile.in dhcp-4.3.5-hl-ldb/relay/Makefile.in
+--- dhcp-4.3.5/relay/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/relay/Makefile.in	2017-05-27 07:00:27.428420749 +0200
+@@ -294,6 +294,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/server/dhcp.c dhcp-4.3.5-hl-ldb/server/dhcp.c
+--- dhcp-4.3.5/server/dhcp.c	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/server/dhcp.c	2017-05-23 08:55:45.000000000 +0200
+@@ -910,7 +910,9 @@
+ 
+ 	/* If we found a lease, release it. */
+ 	if (lease && lease -> ends > cur_time) {
+-		release_lease (lease, packet);
++ 	  
++	  ldb_log_release(lease);
++	  release_lease (lease, packet);
+ 	} 
+ 	log_info ("%s", msgbuf);
+ #if defined(FAILOVER_PROTOCOL)
+@@ -3876,6 +3878,8 @@
+ 	dump_raw ((unsigned char *)&raw, packet_length);
+ #endif
+ 
++	ldb_log_lease(lease);
++	
+ 	/* Set up the hardware address... */
+ 	hto.hlen = lease -> hardware_addr.hlen;
+ 	memcpy (hto.hbuf, lease -> hardware_addr.hbuf, hto.hlen);
+diff -ruN dhcp-4.3.5/server/dhcpd.c dhcp-4.3.5-hl-ldb/server/dhcpd.c
+--- dhcp-4.3.5/server/dhcpd.c	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/server/dhcpd.c	2017-05-27 07:12:52.778677766 +0200
+@@ -27,7 +27,7 @@
+  */
+ 
+ static const char copyright[] =
+-"Copyright 2004-2016 Internet Systems Consortium.";
++"Lease queue patch by Hans Liss (Hans@Liss.pp.se) 2008\nCopyright 2004-2016 Internet Systems Consortium.";
+ static const char arr [] = "All rights reserved.";
+ static const char message [] = "Internet Systems Consortium DHCP Server";
+ static const char url [] =
+@@ -82,6 +82,7 @@
+ 
+ const char *path_dhcpd_conf = _PATH_DHCPD_CONF;
+ const char *path_dhcpd_db = _PATH_DHCPD_DB;
++const char *path_dhcpd_ldb = NULL;
+ const char *path_dhcpd_pid = _PATH_DHCPD_PID;
+ /* False (default) => we write and use a pid file */
+ isc_boolean_t no_pid_file = ISC_FALSE;
+@@ -339,6 +340,10 @@
+ 				usage(use_noarg, argv[i-1]);
+ 			path_dhcpd_db = argv [i];
+ 			no_dhcpd_db = 1;
++		} else if (!strcmp (argv [i], "-ldb")) {
++			if (++i == argc)
++				usage(use_noarg, argv[i-1]);
++			path_dhcpd_ldb = argv [i];
+ 		} else if (!strcmp (argv [i], "-pf")) {
+ 			if (++i == argc)
+ 				usage(use_noarg, argv[i-1]);
+diff -ruN dhcp-4.3.5/server/hl_ldb.c dhcp-4.3.5-hl-ldb/server/hl_ldb.c
+--- dhcp-4.3.5/server/hl_ldb.c	1970-01-01 01:00:00.000000000 +0100
++++ dhcp-4.3.5-hl-ldb/server/hl_ldb.c	2017-05-23 08:55:45.000000000 +0200
+@@ -0,0 +1,252 @@
++/* ldb.c
++
++   Local database glue. */
++
++/*
++ * Copyright (c) 2009 Hans Liss <Hans@Liss.pp.se>
++ *
++ * Permission to use, copy, modify, and distribute this software for any
++ * purpose with or without fee is hereby granted, provided that the above
++ * copyright notice and this permission notice appear in all copies.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS" AND ISC DISCLAIMS ALL WARRANTIES
++ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
++ * MERCHANTABILITY AND FITNESS.  IN NO EVENT SHALL ISC BE LIABLE FOR
++ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
++ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
++ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
++ * OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++ *
++ */
++
++
++
++#include "dhcpd.h"
++#include <errno.h>
++#include <limits.h>
++#include <sys/time.h>
++#include <sqlite3.h>
++
++static int ldb_idx=1;
++static int ldb_lasttime=0;
++static sqlite3 *ldb=NULL;
++
++void ldb_log_release(struct lease *lease) {
++  int ok=1, r;
++  struct sqlite3_stmt* ldb_query;
++  struct option_cache *ridopt = NULL, *cidopt = NULL;
++  if (!path_dhcpd_ldb || !ldb) return;
++ 			
++  if (lease -> starts != ldb_lasttime) {
++    ldb_lasttime = lease -> starts;
++    ldb_idx = 1;
++  }
++ 			
++  if (lease -> agent_options) {
++    struct option_cache *oc;
++    pair p;
++    
++    for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++      oc = (struct option_cache *)p -> car;
++      if (oc -> data.len) {
++	if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++	else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++      }
++    }
++  }
++  
++  if (ok && (sqlite3_prepare(ldb,
++			     "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,1,?,?,?,?,?,?,?)",
++			     -1, &ldb_query, NULL) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 4, time(NULL)) != SQLITE_OK || 
++	     sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++	     sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++					      ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++							       lease -> hardware_addr.hlen - 1,
++							       &lease -> hardware_addr.hbuf [1])
++					      : print_hex_1(lease->uid_len, lease->uid, 60)),
++			       -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok) {
++    if (cidopt) {
++      if (sqlite3_bind_text(ldb_query, 7,
++			    pretty_print_option (cidopt -> option, cidopt -> data.data,
++						 cidopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) {
++    if (ridopt) {
++      if (sqlite3_bind_text(ldb_query, 8,
++			    pretty_print_option (ridopt -> option, ridopt -> data.data,
++						 ridopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++      usleep(1000);
++    }
++  
++  if (ok && r != SQLITE_DONE) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++  
++}
++
++void ldb_log_lease(struct lease *lease) {
++  int ok=1, r=0;
++  struct sqlite3_stmt* ldb_query;
++  struct option_cache *ridopt = NULL, *cidopt = NULL;
++  struct lease_state *state = lease -> state;  
++
++  if (!path_dhcpd_ldb ||
++      state -> offer != DHCPACK ||
++      !(lease -> starts) ||
++      !(lease -> ends)) {
++    return;
++  }
++  
++  if (!ldb) {
++    if (sqlite3_open(path_dhcpd_ldb, &ldb) != SQLITE_OK ||
++	sqlite3_prepare(ldb, "CREATE TABLE IF NOT EXISTS lease_queue (start integer, rtype integer, idx integer, claimed integer, end integer, ip text, hw text, cid text, rid text, primary key(start, idx))",
++			-1, &ldb_query, NULL) != SQLITE_OK) {
++      log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++      ok = 0;
++    }
++    
++    if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++	usleep(1000);
++      }
++    
++    if (ok && r != SQLITE_DONE) {
++      log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++      ok = 0;
++    }
++    
++    if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++      log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++      ok = 0;
++    }
++  }
++		
++  if (ok) {
++    if (lease -> starts != ldb_lasttime) {
++      ldb_lasttime = lease -> starts;
++      ldb_idx = 1;
++    }
++    
++    if (lease -> agent_options) {
++      struct option_cache *oc;
++      pair p;
++      
++      for (p = lease -> agent_options -> first; p; p = p -> cdr) {
++	oc = (struct option_cache *)p -> car;
++	if (oc -> data.len) {
++	  if (!strcasecmp(oc -> option -> name, "circuit-id")) cidopt = oc;
++	  else if (!strcasecmp(oc -> option -> name, "remote-id")) ridopt = oc;
++	}
++      }
++    }
++  }
++  
++  if (ok && (sqlite3_prepare(ldb,
++			     "INSERT INTO lease_queue (start, rtype, idx, claimed, end, ip, hw, cid, rid) values (?,0,?,?,?,?,?,?,?)",
++			     -1, &ldb_query, NULL) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 1, lease -> starts) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 2, ldb_idx++) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 3, 0) != SQLITE_OK ||
++	     sqlite3_bind_int(ldb_query, 4, lease -> ends) != SQLITE_OK || 
++	     sqlite3_bind_text(ldb_query, 5, piaddr (lease -> ip_addr), -1, SQLITE_TRANSIENT) != SQLITE_OK ||
++	     sqlite3_bind_text(ldb_query, 6, (lease -> hardware_addr.hlen
++					      ? print_hw_addr (lease -> hardware_addr.hbuf [0],
++							       lease -> hardware_addr.hlen - 1,
++							       &lease -> hardware_addr.hbuf [1])
++					      : print_hex_1(lease->uid_len, lease->uid, 60)),
++			       -1, SQLITE_TRANSIENT) != SQLITE_OK)) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok) {
++    if (cidopt) {
++      if (sqlite3_bind_text(ldb_query, 7,
++			    pretty_print_option (cidopt -> option, cidopt -> data.data,
++						 cidopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 7) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) {
++    if (ridopt) {
++      if (sqlite3_bind_text(ldb_query, 8,
++			    pretty_print_option (ridopt -> option, ridopt -> data.data,
++						 ridopt -> data.len, 1, 1),
++			    -1, SQLITE_TRANSIENT) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    } else {
++      if (sqlite3_bind_null(ldb_query, 8) != SQLITE_OK) {
++	log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++	ok = 0;
++      }
++    }
++  }
++  
++  if (ok) while ((r=sqlite3_step(ldb_query)) == SQLITE_BUSY) {
++      usleep(1000);
++    }
++  
++  if (ok && r != SQLITE_DONE) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (ok && sqlite3_finalize(ldb_query) != SQLITE_OK) {
++    log_error("Line %d: sqlite3 error: %s", __LINE__, sqlite3_errmsg(ldb));
++    ok = 0;
++  }
++  
++  if (!ok) log_error("ldb error: %s", sqlite3_errmsg(ldb));
++  
++}
+diff -ruN dhcp-4.3.5/server/Makefile.am dhcp-4.3.5-hl-ldb/server/Makefile.am
+--- dhcp-4.3.5/server/Makefile.am	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/server/Makefile.am	2017-05-23 08:59:26.000000000 +0200
+@@ -12,7 +12,8 @@
+ sbin_PROGRAMS = dhcpd
+ dhcpd_SOURCES = dhcpd.c dhcp.c bootp.c confpars.c db.c class.c failover.c \
+ 		omapi.c mdb.c stables.c salloc.c ddns.c dhcpleasequery.c \
+-		dhcpv6.c mdb6.c ldap.c ldap_casa.c leasechain.c ldap_krb_helper.c
++		dhcpv6.c mdb6.c ldap.c ldap_casa.c leasechain.c ldap_krb_helper.c \
++		hl_ldb.c
+ 
+ dhcpd_CFLAGS = $(LDAP_CFLAGS)
+ dhcpd_LDADD = ../common/libdhcp.a ../omapip/libomapi.a \
+diff -ruN dhcp-4.3.5/server/Makefile.in dhcp-4.3.5-hl-ldb/server/Makefile.in
+--- dhcp-4.3.5/server/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/server/Makefile.in	2017-05-27 07:00:27.528420515 +0200
+@@ -113,7 +113,7 @@
+ 	dhcpd-dhcpleasequery.$(OBJEXT) dhcpd-dhcpv6.$(OBJEXT) \
+ 	dhcpd-mdb6.$(OBJEXT) dhcpd-ldap.$(OBJEXT) \
+ 	dhcpd-ldap_casa.$(OBJEXT) dhcpd-leasechain.$(OBJEXT) \
+-	dhcpd-ldap_krb_helper.$(OBJEXT)
++	dhcpd-ldap_krb_helper.$(OBJEXT) dhcpd-hl_ldb.$(OBJEXT)
+ dhcpd_OBJECTS = $(am_dhcpd_OBJECTS)
+ am__DEPENDENCIES_1 =
+ dhcpd_DEPENDENCIES = ../common/libdhcp.a ../omapip/libomapi.a \
+@@ -358,6 +358,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+@@ -377,7 +378,8 @@
+ dist_sysconf_DATA = dhcpd.conf.example
+ dhcpd_SOURCES = dhcpd.c dhcp.c bootp.c confpars.c db.c class.c failover.c \
+ 		omapi.c mdb.c stables.c salloc.c ddns.c dhcpleasequery.c \
+-		dhcpv6.c mdb6.c ldap.c ldap_casa.c leasechain.c ldap_krb_helper.c
++		dhcpv6.c mdb6.c ldap.c ldap_casa.c leasechain.c ldap_krb_helper.c \
++		hl_ldb.c
+ 
+ dhcpd_CFLAGS = $(LDAP_CFLAGS)
+ dhcpd_LDADD = ../common/libdhcp.a ../omapip/libomapi.a \
+@@ -483,6 +485,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpd-dhcpleasequery.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpd-dhcpv6.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpd-failover.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpd-hl_ldb.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpd-ldap.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpd-ldap_casa.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dhcpd-ldap_krb_helper.Po@am__quote@
+@@ -772,6 +775,20 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ldap_krb_helper.c' object='dhcpd-ldap_krb_helper.obj' libtool=no @AMDEPBACKSLASH@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dhcpd_CFLAGS) $(CFLAGS) -c -o dhcpd-ldap_krb_helper.obj `if test -f 'ldap_krb_helper.c'; then $(CYGPATH_W) 'ldap_krb_helper.c'; else $(CYGPATH_W) '$(srcdir)/ldap_krb_helper.c'; fi`
++
++dhcpd-hl_ldb.o: hl_ldb.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dhcpd_CFLAGS) $(CFLAGS) -MT dhcpd-hl_ldb.o -MD -MP -MF $(DEPDIR)/dhcpd-hl_ldb.Tpo -c -o dhcpd-hl_ldb.o `test -f 'hl_ldb.c' || echo '$(srcdir)/'`hl_ldb.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/dhcpd-hl_ldb.Tpo $(DEPDIR)/dhcpd-hl_ldb.Po
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hl_ldb.c' object='dhcpd-hl_ldb.o' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dhcpd_CFLAGS) $(CFLAGS) -c -o dhcpd-hl_ldb.o `test -f 'hl_ldb.c' || echo '$(srcdir)/'`hl_ldb.c
++
++dhcpd-hl_ldb.obj: hl_ldb.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dhcpd_CFLAGS) $(CFLAGS) -MT dhcpd-hl_ldb.obj -MD -MP -MF $(DEPDIR)/dhcpd-hl_ldb.Tpo -c -o dhcpd-hl_ldb.obj `if test -f 'hl_ldb.c'; then $(CYGPATH_W) 'hl_ldb.c'; else $(CYGPATH_W) '$(srcdir)/hl_ldb.c'; fi`
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/dhcpd-hl_ldb.Tpo $(DEPDIR)/dhcpd-hl_ldb.Po
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hl_ldb.c' object='dhcpd-hl_ldb.obj' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(dhcpd_CFLAGS) $(CFLAGS) -c -o dhcpd-hl_ldb.obj `if test -f 'hl_ldb.c'; then $(CYGPATH_W) 'hl_ldb.c'; else $(CYGPATH_W) '$(srcdir)/hl_ldb.c'; fi`
+ install-man5: $(man_MANS)
+ 	@$(NORMAL_INSTALL)
+ 	@list1=''; \
+diff -ruN dhcp-4.3.5/server/tests/Makefile.in dhcp-4.3.5-hl-ldb/server/tests/Makefile.in
+--- dhcp-4.3.5/server/tests/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/server/tests/Makefile.in	2017-05-27 07:00:27.648420235 +0200
+@@ -374,6 +374,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@
+diff -ruN dhcp-4.3.5/tests/Makefile.in dhcp-4.3.5-hl-ldb/tests/Makefile.in
+--- dhcp-4.3.5/tests/Makefile.in	2016-09-27 21:16:50.000000000 +0200
++++ dhcp-4.3.5-hl-ldb/tests/Makefile.in	2017-05-27 07:00:27.692420132 +0200
+@@ -265,6 +265,7 @@
+ prefix = @prefix@
+ program_transform_name = @program_transform_name@
+ psdir = @psdir@
++runstatedir = @runstatedir@
+ sbindir = @sbindir@
+ sharedstatedir = @sharedstatedir@
+ srcdir = @srcdir@

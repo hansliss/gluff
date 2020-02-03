@@ -379,32 +379,6 @@ diff -ruN dhcp-4.4.1/server/dhcpd.c dhcp-4.4.1-ldb/server/dhcpd.c
  		} else if (!strcmp (argv [i], "-pf")) {
  			if (++i == argc)
  				usage(use_noarg, argv[i-1]);
-diff -ruN dhcp-4.4.1/server/#dhcpd.c.rej# dhcp-4.4.1-ldb/server/#dhcpd.c.rej#
---- dhcp-4.4.1/server/#dhcpd.c.rej#	1970-01-01 01:00:00.000000000 +0100
-+++ dhcp-4.4.1-ldb/server/#dhcpd.c.rej#	2019-10-27 01:08:11.569916153 +0200
-@@ -0,0 +1,22 @@
-+--- server/dhcpd.c	2016-09-27 21:16:50.000000000 +0200
-++++ server/dhcpd.c	2017-05-27 07:12:52.778677766 +0200
-+@@ -27,7 +27,7 @@
-+  */
-+ 
-+ static const char copyright[] =
-+-"Copyright 2004-2016 Internet Systems Consortium.";
-++"Lease queue patch by Hans Liss (Hans@Liss.pp.se) 2008\nCopyright 2004-2016 Internet Systems Consortium.";
-+ static const char arr [] = "All rights reserved.";
-+ static const char message [] = "Internet Systems Consortium DHCP Server";
-+ static const char url [] =
-+@@ -340,6 +341,10 @@
-+ 				usage(use_noarg, argv[i-1]);
-+ 			path_dhcpd_db = argv [i];
-+ 			no_dhcpd_db = 1;
-++		} else if (!strcmp (argv [i], "-ldb")) {
-++			if (++i == argc)
-++				usage(use_noarg, argv[i-1]);
-++			path_dhcpd_ldb = argv [i];
-+ 		} else if (!strcmp (argv [i], "-pf")) {
-+ 			if (++i == argc)
-+ 				usage(use_noarg, argv[i-1]);
 diff -ruN dhcp-4.4.1/server/hl_ldb.c dhcp-4.4.1-ldb/server/hl_ldb.c
 --- dhcp-4.4.1/server/hl_ldb.c	1970-01-01 01:00:00.000000000 +0100
 +++ dhcp-4.4.1-ldb/server/hl_ldb.c	2019-10-27 01:05:33.458153673 +0200
